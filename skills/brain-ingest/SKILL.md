@@ -7,6 +7,8 @@ description: The process for digesting a conversation, document, or research res
 
 This skill is about "turning scattered input into structured brain knowledge". The input can be a conclusion from a conversation, an external document, a piece of research, or the decisions behind a set of code changes. The goal is to land that knowledge in the **right place, the right category, and the right structure** — and to write it through the `brain` CLI so it is correct by construction.
 
+Reach for this process not only when explicitly asked to "ingest" something. The brain is the project's persistent memory (see `BRAIN.md`), so **trigger it proactively whenever knowledge crystallizes** — a decision settled in discussion, a requirement or constraint agreed, an insight that will still matter in six months. Capture it as it surfaces rather than waiting to be told.
+
 Every read and write below is a `brain` CLI subcommand (`ls` / `cat` / `show` to read; `create-page` / `update-truth` / … to write). The command details and the category taxonomy live in the **brain-page** skill — read it before creating or modifying any page.
 
 > **NEVER hand-edit any file under the brain directory. All reads and writes MUST go through the `brain` CLI. Manual edits are unsupported and illegitimate.** There is no validator and nothing at the file layer can catch a bad manual edit; correctness is guaranteed only by going through the CLI, so a hand edit silently breaks the brain's invariants.

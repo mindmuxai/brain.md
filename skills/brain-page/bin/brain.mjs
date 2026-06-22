@@ -378,7 +378,11 @@ function brainWireBlock(agent) {
   const lines = [
     "## Project Brain (Open Project Brain Standard)",
     "",
-    "This project follows the **Open Project Brain Standard**. Open and read `./BRAIN.md` first — it is the complete, self-contained read/write contract for the project's brain.",
+    "This project follows the **Open Project Brain Standard**. The `brain/` directory is **this project's memory layer** — its durable decisions, requirements, and constraints. Open and read `./BRAIN.md` first — it is the complete, self-contained read/write contract for the brain.",
+    "",
+    "**Load context before you start.** Before any task or discussion, run `brain ls`, then `brain cat <id>` / `brain show <slug>` to load the relevant existing decisions and constraints.",
+    "",
+    "**Capture as you go.** The moment a decision, requirement, constraint, or durable conclusion surfaces — while discussing or while writing code — record it through the `brain` CLI (a decision page, or a root-page update) before moving on. Don't wait to be asked.",
     "",
     "Core rule: **all brain reads and writes go through the `brain` CLI** — never hand-edit any file under the brain directory.",
     "",
