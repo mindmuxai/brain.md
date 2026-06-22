@@ -11,7 +11,7 @@ You gather information by **reasoning over the project itself** — reading code
 
 > **NEVER hand-edit any file under the brain directory. All reads and writes MUST go through the `brain` CLI. Manual edits are unsupported and illegitimate.** There is no validator and nothing at the file layer can catch a bad manual edit; correctness is guaranteed only by going through the CLI, so a hand edit silently breaks the brain's invariants.
 
-The exact command surface (`update-root` / `create-page` / `update-truth` / `reindex` / `ls` …) and the page-category taxonomy live in the **brain-page** skill — read it before creating or modifying any page. Resolve `<brain-page-bundle>` to wherever that skill is installed (in the brain.md source repo, `skills/brain-page/`); assume `BRAIN="node <brain-page-bundle>/bin/brain.mjs"` and run everything from the project root.
+The exact command surface (`update-root` / `create-page` / `update-truth` / `reindex` / `ls` …) and the page-category taxonomy live in the **brain-page** skill — read it before creating or modifying any page. Resolve `<brain-page-bundle>` to wherever that skill is installed (in the brain.md source repo, `skills/brain-page/`); define the shell function `brain() { node <brain-page-bundle>/bin/brain.mjs "$@"; }` (a function is portable across bash and zsh, unlike `BRAIN="node …"; $BRAIN …`, which only word-splits in bash) and run everything from the project root.
 
 ## Step 0 — Pick the mode
 
@@ -34,7 +34,7 @@ Gather from three sources, then **synthesize** (do not transcribe):
 
 ### Draft the six root pages
 
-Write each with `echo "<body>" | $BRAIN update-root <slug>` (body on stdin). Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
+Write each with `echo "<body>" | brain update-root <slug>` (body on stdin). Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
 
 - `architecture` — layers, modules, boundaries, a mermaid `graph`. **Inferable from code** — write it with confidence.
 - `stack` — domain / choice / rationale table from the dependencies and how they're used. **Inferable from code.**
@@ -48,9 +48,9 @@ Write each with `echo "<body>" | $BRAIN update-root <slug>` (body on stdin). Lea
 For each genuine decision you can see in the history or the code (e.g. "switched from X to Y", "adopted pattern Z", a deliberate constraint), create a `decision` page and fill in its understanding:
 
 ```
-$BRAIN create-page --id <kebab-id> --category decision --title "<one-line decision>" --source "git log / code"
+brain create-page --id <kebab-id> --category decision --title "<one-line decision>" --source "git log / code"
 echo "<what was decided, the alternatives, the rationale, the blast radius>" | \
-  $BRAIN update-truth --id <kebab-id> --summary "captured from project history" --source "git log"
+  brain update-truth --id <kebab-id> --summary "captured from project history" --source "git log"
 ```
 
 Link related pages and the relevant root area with `[[page-id]]`.
@@ -85,8 +85,8 @@ From the answers:
 1. Rebuild the index and review what you seeded:
 
    ```
-   $BRAIN reindex
-   $BRAIN ls
+   brain reindex
+   brain ls
    ```
 
 2. Report back to the user: which root pages you drafted, which decision pages you created, and anything you marked **low-confidence / needs confirmation**.

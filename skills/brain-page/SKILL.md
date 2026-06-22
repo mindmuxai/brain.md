@@ -30,13 +30,14 @@ Run `node <bundle>/bin/brain.mjs help` for the full flag reference.
 
 ## Read operations
 
-Assume `BRAIN="node <bundle>/bin/brain.mjs"`.
+Define a shell function (do **not** use `BRAIN="node <bundle>/bin/brain.mjs"; $BRAIN …` — `VAR="node x"; $VAR` only word-splits in bash; zsh, macOS's default shell, treats `node /…/brain.mjs` as a single command name and fails with `exit 127`. A function is portable across bash and zsh, so keep this form):
 
 ```
-$BRAIN root         # print the resolved brain directory + its source (brainRoot / default)
-$BRAIN ls           # list every page: id / title / category / status
-$BRAIN cat <id>     # print brain/pages/<id>.md
-$BRAIN show <slug>  # print a root page brain/<slug>.md
+brain() { node <bundle>/bin/brain.mjs "$@"; }
+brain root         # print the resolved brain directory + its source (brainRoot / default)
+brain ls           # list every page: id / title / category / status
+brain cat <id>     # print brain/pages/<id>.md
+brain show <slug>  # print a root page brain/<slug>.md
 ```
 
 ## The five page categories
@@ -61,12 +62,12 @@ When in doubt, most knowledge lands in `decision` or `concept`.
 
 ## Write operations (every one is a CLI subcommand)
 
-Assume `BRAIN="node <bundle>/bin/brain.mjs"` and that you are in the project root.
+Assume the `brain` shell function defined above (`brain() { node <bundle>/bin/brain.mjs "$@"; }`) and that you are in the project root.
 
 ### Create a page
 
 ```
-$BRAIN create-page --id <kebab-id> --category <category> --title "<one-line title>" \
+brain create-page --id <kebab-id> --category <category> --title "<one-line title>" \
   [--tags a,b] [--status active] [--source "<where this came from>"]
 ```
 
@@ -75,7 +76,7 @@ Generates `brain/pages/<id>.md` from the template (frontmatter + `## compiled_tr
 ### Rewrite compiled_truth (atomic with its timeline entry)
 
 ```
-echo "<new compiled_truth markdown>" | $BRAIN update-truth --id <id> \
+echo "<new compiled_truth markdown>" | brain update-truth --id <id> \
   --summary "<what changed and why>" [--source "<source>"]
 ```
 
@@ -84,7 +85,7 @@ Reads the new compiled_truth from **stdin**, rewrites the `## compiled_truth` se
 ### Append a timeline entry (append-only)
 
 ```
-$BRAIN append-timeline --id <id> --kind <decision|evidence|reversal|note> \
+brain append-timeline --id <id> --kind <decision|evidence|reversal|note> \
   --summary "<one line>" [--source "<source>"] [--affects a,b]
 ```
 
@@ -93,7 +94,7 @@ Appends to the **end** of the timeline only; existing entries are never touched.
 ### Archive a page
 
 ```
-$BRAIN archive-page --id <id> [--reversal-summary "<why it was overturned>"]
+brain archive-page --id <id> [--reversal-summary "<why it was overturned>"]
 ```
 
 Sets `status: archived`, optionally appends a `kind: reversal` entry, then reindexes.
@@ -101,13 +102,13 @@ Sets `status: archived`, optionally appends a `kind: reversal` entry, then reind
 ### Change tags
 
 ```
-$BRAIN set-tags --id <id> --tags a,b,c
+brain set-tags --id <id> --tags a,b,c
 ```
 
 ### Rewrite a root page
 
 ```
-echo "<root page body markdown>" | $BRAIN update-root <slug>
+echo "<root page body markdown>" | brain update-root <slug>
 ```
 
 `<slug>` must be one of the six fixed root pages: `background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`. The CLI validates the slug, rewrites the whole `brain/<slug>.md`, regenerates the frontmatter, and **guarantees the canonical H1 heading** is present. Root pages have **no timeline** — their history lives in git. Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
@@ -115,8 +116,8 @@ echo "<root page body markdown>" | $BRAIN update-root <slug>
 ### Index / checks
 
 ```
-$BRAIN reindex      # rebuild brain/index.md (also run automatically by the write commands above)
-$BRAIN lint-links   # verify every [[page-id]] resolves
+brain reindex      # rebuild brain/index.md (also run automatically by the write commands above)
+brain lint-links   # verify every [[page-id]] resolves
 ```
 
 ## Why there is no validator

@@ -63,16 +63,16 @@ When scaffolded into a project, `brain-setup` also wires the chosen agents' conf
 5. **The `brain` CLI** (zero npm dependencies, run with `node`):
 
    ```bash
-   B="node skills/brain-page/bin/brain.mjs"
-   $B root                                   # where is the brain? (brainRoot or ./brain)
-   $B ls                                     # list pages
-   $B cat my-decision                        # read a page
-   $B create-page --id my-decision --category decision --title "Use X over Y"
-   echo "the new understanding" | $B update-truth --id my-decision --summary "why it changed"
-   $B append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
-   echo "## Overview …" | $B update-root architecture
-   $B wire --agent claude-code,codex         # wire CLAUDE.md / AGENTS.md to BRAIN.md
-   $B reindex && $B lint-links
+   brain() { node skills/brain-page/bin/brain.mjs "$@"; }
+   brain root                                   # where is the brain? (brainRoot or ./brain)
+   brain ls                                     # list pages
+   brain cat my-decision                        # read a page
+   brain create-page --id my-decision --category decision --title "Use X over Y"
+   echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
+   brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
+   echo "## Overview …" | brain update-root architecture
+   brain wire --agent claude-code,codex         # wire CLAUDE.md / AGENTS.md to BRAIN.md
+   brain reindex && brain lint-links
    ```
 
    The CLI resolves the brain directory itself: it reads `brainRoot` from `./.mindmux/preferences.json` when present (absolute, or relative to the project root), otherwise falls back to `./brain`. Every command is location-independent.
