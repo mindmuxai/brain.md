@@ -1,0 +1,11 @@
+# MindMux client runtime artifacts (task logs, etc.) — not part of the product
+.mindmux/
+
+# macOS
+.DS_Store
+
+# Node (this project is zero-dependency, but keep these out defensively)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

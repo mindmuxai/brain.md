@@ -1,0 +1,14 @@
+{
+  "name": "brain.md",
+  "version": "0.1.0",
+  "description": "Open Project Brain Standard — a runtime-free, file-only project brain plugin for coding agents.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "reindex": "node scripts/reindex.mjs",
+    "lint-links": "node scripts/lint-links.mjs",
+    "validate": "node scripts/validate.mjs",
+    "check": "node scripts/reindex.mjs && node scripts/lint-links.mjs && node scripts/validate.mjs"
+  }
+}
