@@ -10,7 +10,7 @@ Project knowledge shouldn't live only inside some SaaS. brain.md captures it as 
 
 - Project-level deliverables → 6 **root pages** under `brain/` (background / architecture / flow / mindmap / stack / roadmap).
 - Incremental knowledge → individual **pages** under `brain/pages/` (five categories: decision / concept / project / person / reference), each = a rewritable `compiled_truth` + an append-only `timeline`.
-- The AI's operating manual → three **skills** (`brain-setup`, `brain-page`, `brain-ingest`) installed into each agent's global skills directory.
+- The AI's operating manual → four **skills** (`brain-setup`, `brain-bootstrap`, `brain-page`, `brain-ingest`) installed into each agent's global skills directory.
 
 The whole idea: **all reads and writes go through the `brain` CLI** — read with `brain ls` / `cat <id>` / `show <slug>`, write with the correct-by-construction write subcommands — so frontmatter is never mis-shaped and a `compiled_truth` rewrite can never silently skip its timeline entry. Hand-editing a brain file is unsupported and illegitimate; there is no validator, and nothing at the file layer can catch a bad manual edit.
 
@@ -23,9 +23,10 @@ setup  /  uninstall    # global installer / uninstaller (symlink skills into eac
 README.md
 package.json           # `npm run check` reindexes + lint-links the shipped scaffold template
 skills/
-  brain-setup/    SKILL.md + assets/ (BRAIN.md + brain/ skeleton) + hooks/pre-commit
-  brain-page/     SKILL.md + bin/brain.mjs (the CLI) + lib/brain.mjs (shared logic)
-  brain-ingest/   SKILL.md
+  brain-setup/      SKILL.md + assets/ (BRAIN.md + brain/ skeleton) + hooks/pre-commit
+  brain-bootstrap/  SKILL.md (seed a fresh brain from code/docs/git or an interview)
+  brain-page/       SKILL.md + bin/brain.mjs (the CLI) + lib/brain.mjs (shared logic)
+  brain-ingest/     SKILL.md
 ```
 
 Each skill bundle is self-contained: the `brain` CLI and its shared library live inside `brain-page`, and the scaffold templates live inside `brain-setup`. There is no top-level `scripts/` directory.
@@ -55,9 +56,11 @@ When scaffolded into a project, `brain-setup` also wires the chosen agents' conf
 
 2. **Initialize a project:** run the **brain-setup** skill in that project. It scaffolds `BRAIN.md` + the `brain/` skeleton, wires the chosen agents' config files with `brain wire --agent <claude-code|codex>`, and can install a pre-commit hook.
 
-3. **Work as usual.** The agent reads and writes the brain only through the `brain` CLI, following `BRAIN.md`.
+3. **Seed real knowledge:** run the **brain-bootstrap** skill. On an existing project it reads the code, docs, and `git log` to draft the six root pages and capture key decisions; on a near-empty project it interviews you to seed `background` and friends. (brain-setup leaves the brain empty on purpose — seeding is a separate, user-controlled step.)
 
-4. **The `brain` CLI** (zero npm dependencies, run with `node`):
+4. **Work as usual.** The agent reads and writes the brain only through the `brain` CLI, following `BRAIN.md`.
+
+5. **The `brain` CLI** (zero npm dependencies, run with `node`):
 
    ```bash
    B="node skills/brain-page/bin/brain.mjs"

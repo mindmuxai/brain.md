@@ -25,7 +25,7 @@ Check the project root for `BRAIN.md`.
 Copy from the bundle into the project root, without clobbering anything that already exists:
 
 - `assets/BRAIN.md` → `./BRAIN.md`
-- `assets/brain/` → `./brain/` — this brings the six root page templates (`background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`), a generated `index.md`, and `pages/welcome.md` as a worked example.
+- `assets/brain/` → `./brain/` — this brings the six root page templates (`background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`), a generated `index.md`, and an empty `pages/` directory. No example pages are scaffolded; the page format is documented in `BRAIN.md` and the **brain-page** skill.
 
 For each destination file: copy it **only if it does not already exist** (never overwrite project content). After copying, run the CLI's `reindex` so `brain/index.md` reflects whatever pages are present:
 
@@ -50,7 +50,7 @@ You may pass `--agent` multiple times or comma-separate them, e.g. `wire --agent
 What the command does (so you can explain it):
 
 - Maps `claude-code → ./CLAUDE.md` and `codex → ./AGENTS.md` in the project root.
-- Writes one **unified, neutral, self-contained brain block** — wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->` — that names the Open Project Brain Standard, instructs the agent to read `./BRAIN.md` (the full read/write contract), states the core rule (all brain reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes that the three brain skills are installed globally.
+- Writes one **unified, neutral, self-contained brain block** — wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->` — that names the Open Project Brain Standard, instructs the agent to read `./BRAIN.md` (the full read/write contract), states the core rule (all brain reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes that the four brain skills are installed globally.
 - Both files get the **same** block body; the only difference is that `CLAUDE.md` additionally carries an `@import ./BRAIN.md` line (Claude Code-specific syntax — Codex does not understand `@import`, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction).
 - It is **idempotent** via the markers: absent file → created; existing file without the markers → block appended; existing marked block → replaced in place (so re-running upgrades the block instead of duplicating it).
 
@@ -65,4 +65,8 @@ The hook runs `reindex → lint-links` on every commit and folds any index chang
 
 ## After setup
 
-Tell the user the project is initialized and point them at the next steps: read `BRAIN.md`, then use the **brain-page** skill to create the first real page and the **brain-ingest** skill to digest existing knowledge into the brain. **Every read and write goes through the `brain` CLI — never hand-edit a brain file.**
+The scaffold leaves the brain empty — six root page **templates** plus an empty `pages/`. The valuable next step is to **seed it with real project knowledge**, and that is exactly what the **brain-bootstrap** skill does:
+
+> **Recommend the user run the brain-bootstrap skill next.** On an existing (brownfield) project it reads the code, docs, and `git log` to draft the six root pages and capture the key historical decisions; on a near-empty (greenfield) project it interviews the user to seed `background` and friends. brain-setup does **not** run it automatically — initialization and knowledge-seeding are separate steps, so the user stays in control of what gets written.
+
+Also point them at: read `BRAIN.md`, then use the **brain-page** skill to author or modify pages directly and the **brain-ingest** skill to digest scattered input into the brain. **Every read and write goes through the `brain` CLI — never hand-edit a brain file.**

@@ -382,7 +382,7 @@ function brainWireBlock(agent) {
     "",
     "Core rule: **all brain reads and writes go through the `brain` CLI** — never hand-edit any file under the brain directory.",
     "",
-    "The brain skills — `brain-setup`, `brain-page`, `brain-ingest` — are installed in your global skills directory.",
+    "The brain skills — `brain-setup`, `brain-bootstrap`, `brain-page`, `brain-ingest` — are installed in your global skills directory.",
   ];
   // claude-code only: the @import line trails the read instruction. Removing this
   // single line yields a body identical to the codex block.

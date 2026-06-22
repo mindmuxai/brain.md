@@ -115,9 +115,10 @@ Use `[[page-id]]` only when the identifier truly is the id of a brain page (it a
 
 ### 4. Workspace skills — the AI's operating manuals
 
-Skills are reusable operating manuals for working with `brain/`. They are not knowledge deliverables; they are "how to do it" rulebooks for the AI, installed into each agent's global skills directory (so Claude Code, Codex, and others share them). This standard ships three:
+Skills are reusable operating manuals for working with `brain/`. They are not knowledge deliverables; they are "how to do it" rulebooks for the AI, installed into each agent's global skills directory (so Claude Code, Codex, and others share them). This standard ships four:
 
 - **brain-setup** — detect whether a project has a `BRAIN.md`; if not, scaffold `BRAIN.md` + the `brain/` skeleton, wire the chosen agents' config files via `brain wire` (see below), and optionally install a pre-commit hook.
+- **brain-bootstrap** — seed a freshly-scaffolded brain with real project knowledge: on an existing project, read the code / docs / `git log` to draft the six root pages and capture key decisions; on an empty project, interview the user. All writes go through the `brain` CLI. Run it after **brain-setup**.
 - **brain-page** — the operating manual for reading and writing pages + root pages; this is the bundle that carries the `brain` CLI. **Read it before creating or modifying any page.**
 - **brain-ingest** — the process for digesting a conversation / document / research result and writing it down through the `brain` CLI.
 
@@ -164,7 +165,7 @@ brain wire --agent <claude-code|codex>      # repeatable, or comma-separated: --
 ```
 
 - `claude-code → ./CLAUDE.md`, `codex → ./AGENTS.md` (written in the project root).
-- It writes one **unified, neutral, self-contained brain block**, wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->`: it names the Open Project Brain Standard, tells the agent to read `./BRAIN.md` (this contract), states the core rule (all reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes the three brain skills are installed globally.
+- It writes one **unified, neutral, self-contained brain block**, wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->`: it names the Open Project Brain Standard, tells the agent to read `./BRAIN.md` (this contract), states the core rule (all reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes the four brain skills are installed globally.
 - Both files get the **same** block body. The only difference: `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — Codex (which reads `AGENTS.md`) does not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
 - **Idempotent** via the markers: no file → created; file without markers → block appended; existing marked block → replaced in place (re-running upgrades, never duplicates).
 

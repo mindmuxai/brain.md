@@ -29,7 +29,18 @@ if [ ! -d "$SRC" ]; then
   exit 1
 fi
 
-SKILLS="brain-setup brain-page brain-ingest"
+# Discover every skill bundle under skills/ (any directory with a SKILL.md),
+# so newly added skills are installed automatically without editing this list.
+SKILLS=""
+for skill_dir in "$SRC"/*/; do
+  [ -f "${skill_dir}SKILL.md" ] || continue
+  SKILLS="$SKILLS $(basename "$skill_dir")"
+done
+
+if [ -z "$SKILLS" ]; then
+  echo "setup: no skill bundles found under $SRC" >&2
+  exit 1
+fi
 
 print_logo() {
   cat <<'LOGO'
