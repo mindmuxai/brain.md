@@ -1,0 +1,183 @@
+# BRAIN.md — Project Brain protocol entry point
+
+This file is the protocol entry point for the **Open Project Brain Standard**. Any coding agent (Claude Code / Codex / anything else) that reads it knows how to work with this project's brain — no runtime service, no MCP server, just plain-file conventions plus one zero-dependency reference CLI.
+
+The brain is the project's knowledge, captured as plain Markdown. **Both reads and writes go through the `brain` CLI:**
+
+- **Read = `brain` read subcommands** (`root` / `ls` / `cat <id>` / `show <slug>`). They are location-independent — you do not need to know where the brain directory lives.
+- **Write = `brain` write subcommands.** Every mutation is correct-by-construction, so frontmatter is never mis-shaped and the most fragile failure mode — rewriting a page's understanding without leaving a timeline trace — is structurally impossible.
+
+> **NEVER hand-edit any file under the brain directory. All reads and writes MUST go through the `brain` CLI. Manual edits are unsupported and illegitimate.** Correctness is guaranteed by construction inside the CLI; there is no validator and nothing at the file layer can stop a bad manual edit, so a hand edit silently breaks the brain's invariants (mis-shaped frontmatter, a compiled_truth rewrite with no timeline trace). If you find yourself opening a brain file in an editor, stop and use a `brain` subcommand instead.
+
+This file is the **single source of truth for the full read + write contract**, covering both pages and root pages. Read it once and you know everything about reading from and writing to the brain.
+
+---
+
+## Your role: both a coding agent and a brain editor
+
+In this repository you wear two hats, and neither can be neglected:
+
+- **Before you change code, read the brain.** Before implementing, refactoring, or debugging, read the relevant root pages and pages — via `brain ls` for an overview and `brain cat <id>` / `brain show <slug>` for the content — to understand the existing decisions, constraints, and context.
+- **After a change that affects decisions, write back to the brain** — through the `brain` CLI. When a change shifts the project's positioning, architecture, technology choices, or roadmap — or establishes or overturns a decision — capture it back. Pure implementation details, and anything readable straight from the code and git history, do not belong in the brain.
+
+The test: **will this still matter in six months, and is it hard to reconstruct from the code itself?** Yes → write it into the brain; no → leave it in the code and the commit message.
+
+---
+
+## The `brain` CLI — how to invoke
+
+All reads and writes go through one zero-dependency Node (ESM) CLI shipped in the **brain-page** skill bundle at `bin/brain.mjs`:
+
+```
+node <brain-page-skill-bundle>/bin/brain.mjs <subcommand> [flags]
+```
+
+Resolve `<brain-page-skill-bundle>` to wherever the brain-page skill is installed (globally, e.g. `~/.claude/skills/brain-page/`; or, in the brain.md source repo, `skills/brain-page/`). Run all commands from the **project root**. Run `... bin/brain.mjs help` for the full flag reference.
+
+**Where the brain lives.** The CLI resolves the brain directory itself, so every command is location-independent:
+
+1. If `./.mindmux/preferences.json` exists and has a `brainRoot` field, that path is the brain root (it contains `pages/` and the six root pages). It may be absolute (e.g. a MindMux-managed sidecar like `/Users/me/Work/myproject-brain`) or relative to the project root.
+2. Otherwise the brain is `./brain`.
+
+A missing file, broken JSON, or absent `brainRoot` all fall back silently to `./brain`. Run `brain root` to see the resolved directory and which rule produced it.
+
+---
+
+## The kinds of brain files
+
+`brain/` holds a few distinct kinds of files. Don't conflate them.
+
+### 1. Root pages (`brain/*.md`) — project-level deliverables (a fixed set of six)
+
+Project-wide, structured, always present:
+
+| slug | file | role | typical content |
+|------|------|------|-----------------|
+| `background` | `background.md` | project background | why / goals / non-goals / target users |
+| `architecture` | `architecture.md` | system architecture | layers, modules, mermaid diagrams |
+| `flow` | `flow.md` | key flows | end-to-end path of a typical request, mermaid sequenceDiagram |
+| `mindmap` | `mindmap.md` | feature mindmap | main branches from the project root, mermaid mindmap |
+| `stack` | `stack.md` | technology choices | domain / candidates / decision / rationale table + open items |
+| `roadmap` | `roadmap.md` | milestones | 2–4 week slices, mermaid gantt |
+
+Rules:
+
+- **Fixed in number — only updated, never created.** Rewrite one with `brain update-root <slug>` (body on stdin). The CLI regenerates the frontmatter and guarantees the canonical H1 heading.
+- **No timeline** — a root page's history is carried by git.
+- **Read** a root page with `brain show <slug>`.
+- Lean on ` ```mermaid ` code blocks (graph / sequenceDiagram / mindmap / gantt) to make the content visual.
+
+### 2. Pages (`brain/pages/*.md`) — incremental knowledge
+
+Each page is a durable unit of project knowledge, of exactly one of five categories: `project` / `concept` / `decision` / `person` / `reference`. There is no limit on the number of pages; create them as needed. For the full category boundaries see the **brain-page** skill.
+
+Each page = **compiled_truth** (a rewritable "current best understanding") + **timeline** (an append-only chain of evidence).
+
+File structure:
+
+```markdown
+---
+id: <kebab-case-id>          # required, must equal the filename (without .md)
+title: <one-line title>      # required
+category: decision           # required, one of the five categories
+status: active               # required: active / draft / archived
+tags: [a, b]                 # optional, inline array
+created: "2026-06-22"        # required
+updated: "2026-06-22T12:00"  # maintained by the CLI
+---
+
+## compiled_truth
+
+<current best understanding, rewritable as a whole>
+
+## timeline
+
+- time: 2026-06-22T12:00
+  kind: decision
+  summary: <one line describing this entry>
+  source: <where the information came from>
+  affects: [<page-id>, ...]
+```
+
+Rules:
+
+- **Read** a page with `brain cat <id>`; list all pages with `brain ls`.
+- **The timeline is append-only.** Existing entries are never modified or deleted. When a conclusion is overturned, append an entry with `kind: reversal`.
+- **compiled_truth may be rewritten wholesale**, but every rewrite must append a `kind: decision` entry to the timeline recording why. `brain update-truth` does both in a single atomic write, so you cannot do one without the other.
+- Always reference other pages with `[[page-id]]`; do not rely on a `refs` frontmatter field.
+- Lifecycle status is context hygiene: day-to-day, look only at `status: active` pages; include draft / archived ones only when explicitly asked.
+
+### 3. `[[wiki-link]]` mention convention
+
+When you mention a specific brain page in a user-facing reply, prefer the clickable `[[page-id]]` form. This matters most for page search results, page lists, related / suggested pages, and replies that read one page and point to others. Keep natural-language context alongside it, e.g. `[[welcome]] — the example page`.
+
+Use `[[page-id]]` only when the identifier truly is the id of a brain page (it appears in `brain/index.md`, in a page's frontmatter, or in trusted page content). **Do not** wrap root-page slugs, file paths, ordinary words, bare titles, or uncertain entities in `[[ ]]`.
+
+### 4. Workspace skills — the AI's operating manuals
+
+Skills are reusable operating manuals for working with `brain/`. They are not knowledge deliverables; they are "how to do it" rulebooks for the AI, installed into each agent's global skills directory (so Claude Code, Codex, and others share them). This standard ships three:
+
+- **brain-setup** — detect whether a project has a `BRAIN.md`; if not, scaffold `BRAIN.md` + the `brain/` skeleton, wire the chosen agents' config files via `brain wire` (see below), and optionally install a pre-commit hook.
+- **brain-page** — the operating manual for reading and writing pages + root pages; this is the bundle that carries the `brain` CLI. **Read it before creating or modifying any page.**
+- **brain-ingest** — the process for digesting a conversation / document / research result and writing it down through the `brain` CLI.
+
+---
+
+## Choosing where to write
+
+When you need to capture knowledge, ask first:
+
+- **Does this change the project's overall positioning / architecture / stack / roadmap?** → Rewrite the corresponding root page (`brain update-root <slug>`).
+- **Is this about a specific entity (a decision, concept, person, reference)?** → Create or update a page; for the taxonomy see the **brain-page** skill.
+
+A single discussion often touches both — e.g. "we decided to use Markdown rather than SQLite" is both a decision page and an update to `stack.md`.
+
+---
+
+## Read + write contract (the translation table)
+
+This standard grew out of a tool-call-based brain system. Here, **every read and write is a `brain` CLI subcommand**. The table below is the complete mapping — follow it exactly.
+
+| original tool semantics | brain.md contract action |
+|---|---|
+| read a page | `brain cat <id>` — prints the page. |
+| read a root page | `brain show <slug>` — prints the root page. |
+| list pages | `brain ls` — id / title / category / status for every page. |
+| locate the brain | `brain root` — prints the resolved brain directory and its source. |
+| `create_page` | `brain create-page --id <id> --category <cat> --title "<t>" [--tags a,b] [--status] [--source]` — writes the page from the template (frontmatter + compiled_truth + a seed `kind: decision` timeline entry) and reindexes. Read the **brain-page** skill before creating. |
+| `update_compiled_truth` | `brain update-truth --id <id>` with the new compiled_truth on **stdin** — rewrites compiled_truth **and atomically appends a `kind: decision` timeline entry** + bumps `updated`. |
+| `append_timeline` | `brain append-timeline --id <id> --kind <k> --summary "<s>" [--source] [--affects]` — appends at the end of the timeline only (append-only). |
+| `archive_page` | `brain archive-page --id <id> [--reversal-summary "<s>"]` — sets `status: archived`, optionally appends a `kind: reversal` entry, reindexes. |
+| `set_page_tags` | `brain set-tags --id <id> --tags a,b,c` — rewrites the frontmatter tags, reindexes. |
+| `update_root_page` | `brain update-root <slug>` with the body on **stdin** — rewrites `brain/<slug>.md` wholesale, regenerates frontmatter, guarantees the canonical H1; root pages have no timeline. |
+| `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. |
+| wire an agent's config | `brain wire --agent <claude-code\|codex>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |
+
+---
+
+## Wiring agent-config files — `brain wire`
+
+So that a coding agent picks up this contract automatically, the project's agent-config files point at `BRAIN.md`. This is done **deterministically by the CLI**, never by hand:
+
+```
+brain wire --agent <claude-code|codex>      # repeatable, or comma-separated: --agent claude-code,codex
+```
+
+- `claude-code → ./CLAUDE.md`, `codex → ./AGENTS.md` (written in the project root).
+- It writes one **unified, neutral, self-contained brain block**, wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->`: it names the Open Project Brain Standard, tells the agent to read `./BRAIN.md` (this contract), states the core rule (all reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes the three brain skills are installed globally.
+- Both files get the **same** block body. The only difference: `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — Codex (which reads `AGENTS.md`) does not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
+- **Idempotent** via the markers: no file → created; file without markers → block appended; existing marked block → replaced in place (re-running upgrades, never duplicates).
+
+---
+
+## Why there is no validator — correctness by construction
+
+There is deliberately **no `validate` command**. Because every write goes through the CLI, the two things a validator used to guard are now structurally impossible: frontmatter is always CLI-generated so it can't be mis-shaped, and `update-truth` rewrites compiled_truth and appends its timeline entry in one atomic write, so a "changed understanding with no trace" can never occur. The guarantee comes from *only ever using the CLI*.
+
+That is also why the guardrail above is absolute: **never hand-edit a brain file.** Nothing at the file layer can stop a manual edit, and there is no validator to catch one afterwards — a hand edit silently breaks invariants that the rest of the system trusts. `brain reindex` (rebuilds `index.md`) and `brain lint-links` (checks every `[[page-id]]` resolves) remain as optional hygiene, and `brain-setup` can install a pre-commit hook that runs them; neither is load-bearing.
+
+---
+
+## Language
+
+Reply in the **user's working language**, inferred from the user's messages — not from the UI locale, tool names, or the language of this file. Write the body of timelines, compiled_truth, and root pages in the user's working language; keep technical identifiers (ids, slugs, field names, file paths) verbatim.

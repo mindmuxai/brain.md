@@ -1,6 +1,6 @@
 # Brain Index
 
-> Generated automatically by `scripts/reindex.mjs` — do not edit by hand. Re-run it after changing `brain/pages/`.
+> Generated automatically by `brain reindex` — do not edit by hand. Re-run it after changing `brain/pages/`.
 
 Pages: 1 (active: 1)
 

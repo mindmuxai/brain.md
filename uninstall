@@ -1,0 +1,96 @@
+#!/bin/sh
+# brain.md uninstaller — reverse what `setup` installed: the skill symlinks
+# recorded in the manifest. You can confirm each runtime, or remove all at once.
+#
+# This NEVER touches any project's brain knowledge. Per-project BRAIN.md and
+# brain/ directories are state, not tools; removing the tools leaves them intact.
+#
+# Usage: ./uninstall [--yes|-y] [--keep-state]
+#   --yes, -y      non-interactive: remove from every recorded runtime without
+#                  asking. Default is to ask about each runtime, y/N.
+#   --keep-state   keep the install manifest (so a later `setup` remembers); by
+#                  default the manifest is removed once everything is unlinked.
+set -eu
+
+ASSUME_YES=0
+KEEP_STATE=0
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) ASSUME_YES=1 ;;
+    --keep-state) KEEP_STATE=1 ;;
+    *) echo "uninstall: unknown option '$arg'" >&2; exit 2 ;;
+  esac
+done
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/brain.md"
+MANIFEST="$STATE_DIR/installed-links"
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "uninstall: nothing to do (no manifest at $MANIFEST)."
+  exit 0
+fi
+
+# Ask a y/N question. Returns 0 for yes, 1 for no. Honours --yes; reads the
+# answer from stdin (a terminal when run interactively, or piped input), and
+# defaults to no when stdin is closed/empty.
+ask() {
+  if [ "$ASSUME_YES" -eq 1 ]; then
+    return 0
+  fi
+  printf '%s [y/N] ' "$1"
+  read -r reply || reply=""
+  case "$reply" in
+    [yY]|[yY][eE][sS]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Unique skills directories recorded in the manifest (one per runtime).
+RUNTIMES=$(while IFS= read -r target; do
+  [ -n "$target" ] || continue
+  dirname "$target"
+done < "$MANIFEST" | sort -u)
+
+removed=0
+any_left=0
+for runtime in $RUNTIMES; do
+  if ! ask "Remove brain.md skills from $runtime?"; then
+    echo "uninstall: kept $runtime."
+    any_left=1
+    continue
+  fi
+
+  while IFS= read -r target; do
+    [ -n "$target" ] || continue
+    case "$target" in
+      "$runtime"/*) ;;
+      *) continue ;;
+    esac
+    if [ -L "$target" ]; then
+      rm -f "$target"
+      echo "uninstall: removed $target"
+      removed=$((removed + 1))
+
+      # Restore a backup we set aside during setup, if any.
+      backup="$target.pre-brain.bak"
+      if [ -e "$backup" ]; then
+        mv "$backup" "$target"
+        echo "uninstall: restored $target from $backup"
+      fi
+    elif [ -e "$target" ]; then
+      echo "uninstall: $target is not our symlink; leaving it untouched" >&2
+    fi
+  done < "$MANIFEST"
+done
+
+if [ "$any_left" -eq 1 ]; then
+  echo "uninstall: some runtimes were kept; leaving the manifest in place."
+elif [ "$KEEP_STATE" -eq 1 ]; then
+  echo "uninstall: kept manifest at $MANIFEST (--keep-state)."
+else
+  rm -f "$MANIFEST"
+  rmdir "$STATE_DIR" 2>/dev/null || true
+  echo "uninstall: removed manifest."
+fi
+
+echo "uninstall: done ($removed link(s) removed). Project brain/ data was not touched."

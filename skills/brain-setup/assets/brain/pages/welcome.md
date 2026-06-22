@@ -17,7 +17,7 @@ A page = two sections:
 - **compiled_truth**: the current best understanding, rewritable as a whole. When you rewrite it, you must append a `kind: decision` entry to the timeline explaining why.
 - **timeline**: an append-only chain of evidence; existing entries are never modified, and when a conclusion is overturned you append a `kind: reversal` entry.
 
-To reference another page, use the `[[page-id]]` form — for example, this page itself is [[welcome]]. For the full write protocol, see the root `BRAIN.md` and the `page-management` skill.
+To reference another page, use the `[[page-id]]` form — for example, this page itself is [[welcome]]. For the full read/write protocol, see the root `BRAIN.md` and the `brain-page` skill.
 
 ## timeline
 

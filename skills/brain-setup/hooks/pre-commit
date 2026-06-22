@@ -1,0 +1,50 @@
+#!/bin/sh
+# brain.md pre-commit hook — local index + link backstop (no CI required).
+# Runs reindex -> lint-links; blocks the commit on a broken link.
+#
+# It locates the brain-page skill's `brain` CLI from a few likely places.
+# Override by exporting BRAIN_CLI=/abs/path/to/brain-page/bin/brain.mjs.
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+find_cli() {
+  if [ -n "$BRAIN_CLI" ] && [ -f "$BRAIN_CLI" ]; then
+    echo "$BRAIN_CLI"; return 0
+  fi
+  for c in \
+    "skills/brain-page/bin/brain.mjs" \
+    "$HOME/.claude/skills/brain-page/bin/brain.mjs" \
+    "$HOME/.codex/skills/brain-page/bin/brain.mjs"; do
+    if [ -f "$c" ]; then echo "$c"; return 0; fi
+  done
+  return 1
+}
+
+cli=$(find_cli) || {
+  echo "brain pre-commit: could not find the brain CLI; skipping (set BRAIN_CLI to enable)." >&2
+  exit 0
+}
+
+# Ask the CLI where the brain lives — honours the brainRoot redirect in
+# ./.mindmux/preferences.json, or falls back to ./brain. First line = abs path.
+brain_dir=$(node "$cli" root | head -1)
+
+# Nothing to do if this project has no brain.
+[ -d "$brain_dir" ] || exit 0
+
+node "$cli" reindex
+node "$cli" lint-links
+
+# If reindex changed the index and it lives inside this repo, fold it into the
+# commit. A redirected sidecar brain outside the repo isn't tracked here, so skip.
+index_path="$brain_dir/index.md"
+case "$index_path" in
+  "$repo_root"/*)
+    rel=${index_path#"$repo_root"/}
+    if ! git diff --quiet -- "$rel" 2>/dev/null; then
+      git add "$rel"
+    fi
+    ;;
+esac
