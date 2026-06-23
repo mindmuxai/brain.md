@@ -89,8 +89,8 @@ title: <one-line title>      # required
 category: decision           # required, one of the five categories
 status: active               # required: active / draft / archived
 tags: [a, b]                 # optional, inline array
-created: "2026-06-22"        # required
-updated: "2026-06-22T12:00"  # maintained by the CLI
+created: "2026-06-22T12:00:00"  # required
+updated: "2026-06-22T12:00:00"  # maintained by the CLI
 ---
 
 ## compiled_truth
@@ -99,7 +99,7 @@ updated: "2026-06-22T12:00"  # maintained by the CLI
 
 ## timeline
 
-- time: 2026-06-22T12:00
+- time: 2026-06-22T12:00:00
   kind: decision
   summary: <one line describing this entry>
   source: <where the information came from>

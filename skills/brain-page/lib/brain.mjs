@@ -211,13 +211,13 @@ export function findWikiLinks(text) {
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
-/** `YYYY-MM-DDTHH:MM` local-time stamp for timeline entries / `updated`. */
+/** `YYYY-MM-DDTHH:MM:SS` local-time stamp for timeline entries / `updated`. */
 export function nowStamp() {
   const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-/** `YYYY-MM-DD` local-time stamp for `created`. */
+/** `YYYY-MM-DD` local-time stamp for root page `updated`. */
 export function todayStamp() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
