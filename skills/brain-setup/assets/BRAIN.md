@@ -1,7 +1,5 @@
 # BRAIN.md — Project Brain protocol entry point
 
-This file is the protocol entry point for the **Open Project Brain Standard**. Any coding agent (Claude Code / Codex / anything else) that reads it knows how to work with this project's brain — no runtime service, no MCP server, just plain-file conventions plus one zero-dependency reference CLI.
-
 The brain is the project's knowledge, captured as plain Markdown. **Both reads and writes go through the `brain` CLI:**
 
 - **Read = `brain` read subcommands** (`brain-dir` / `list-pages` / `read-page <id>` / `read-root <slug>`). They are location-independent — you do not need to know where the brain directory lives.
