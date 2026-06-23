@@ -7,12 +7,12 @@
 <p align="center">
   <b>A persistent memory layer for your coding agents.</b><br>
   An open, agent-agnostic standard for capturing a project's durable knowledge as plain
-  Markdown — every read and write through one zero-dependency CLI. No service, no MCP server.
+  Markdown — read and written through one small CLI. It lives in your repo and travels across agents, machines, and models.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache--2.0-171717?style=flat-square" alt="License: Apache-2.0">
-  <img src="https://img.shields.io/badge/runtime-zero%20dependencies-171717?style=flat-square" alt="Zero runtime dependencies">
+  <img src="https://img.shields.io/badge/CLI-zero%20dependencies-171717?style=flat-square" alt="Zero-dependency CLI">
   <img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-171717?style=flat-square" alt="Agents: Claude Code, Codex">
   <img src="https://img.shields.io/badge/version-0.1.0-171717?style=flat-square" alt="Version 0.1.0">
 </p>
@@ -42,7 +42,7 @@ and they vanish the moment the session ends. The next agent starts from zero.
 A brain fixes that. It is the project's **persistent memory**: the durable decisions,
 requirements, and constraints, written down as plain Markdown next to the code.
 
-- **Repo-native** — Markdown in your project. No service, no database, no MCP server, no `npm install`.
+- **Repo-native** — Markdown that lives in your project and travels in git, with or without a runtime on top.
 - **Agent-agnostic** — the contract is a file (`BRAIN.md`). Any agent that can read it can use the brain.
 - **Correct by construction** — every write goes through the `brain` CLI, so the brain's
   invariants can't be broken by a malformed edit. There is no validator because none is needed.
@@ -124,8 +124,8 @@ Three design choices keep the brain durable and tamper-evident:
 - **Exactly one brain, location-independent.** It defaults to `./brain`, but a project can
   redirect it via `brainRoot` in `.mindmux/preferences.json` (e.g. an external sidecar). Every
   command resolves the location itself — tools never create a second, shadow brain.
-- **Pure files, zero runtime.** The whole thing is Markdown plus one Node script. Nothing to
-  run, nothing to host, nothing to keep alive.
+- **Pure files, portable.** The brain is Markdown plus one Node script — it lives in your repo
+  and travels in git, and runtimes (MindMux over MCP, more to come) layer on top of the same files.
 
 The skills that drive it all:
 
