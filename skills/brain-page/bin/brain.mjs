@@ -15,10 +15,10 @@
 //   node <brain-page-skill>/bin/brain.mjs <subcommand> [flags]
 //
 // Subcommands:
-//   root                            (print the resolved brain dir, its source, and whether it exists/is populated)
-//   ls                              (list pages: id / title / category / status)
-//   cat <id>                        (print brain/pages/<id>.md)
-//   show <slug>                     (print a root page brain/<slug>.md)
+//   brain-dir                       (print the resolved brain dir, its source, and whether it exists/is populated)
+//   list-pages                      (list pages: id / title / category / status)
+//   read-page <id>                  (print brain/pages/<id>.md)
+//   read-root <slug>                (print a root page brain/<slug>.md)
 //   create-page     --id --category --title [--tags] [--status] [--source]
 //   update-truth    --id            (new compiled_truth read from stdin)
 //   append-timeline --id --kind --summary [--source] [--affects]
@@ -314,7 +314,7 @@ function cmdLintLinks() {
 
 // ---- read subcommands (location-independent) --------------------------------
 
-function cmdRoot() {
+function cmdBrainDir() {
   const origin = BRAIN_DIR_SOURCE === "brainRoot"
     ? "from brainRoot in ./.mindmux/preferences.json"
     : "default ./brain";
@@ -328,7 +328,7 @@ function cmdRoot() {
   console.log(`populated: ${populated}`);
 }
 
-function cmdLs() {
+function cmdListPages() {
   ensureBrainExists();
   const pages = listPages();
   if (pages.length === 0) {
@@ -345,19 +345,19 @@ function cmdLs() {
   }
 }
 
-function cmdCat(positional) {
+function cmdReadPage(positional) {
   ensureBrainExists();
   const id = positional[0];
-  if (!id) fail("cat needs a page id: brain cat <id>");
+  if (!id) fail("read-page needs a page id: brain read-page <id>");
   const path = pagePath(id);
   if (!existsSync(path)) fail(`brain/pages/${id}.md does not exist`);
   process.stdout.write(readFileSync(path, "utf8"));
 }
 
-function cmdShow(positional) {
+function cmdReadRoot(positional) {
   ensureBrainExists();
   const slug = positional[0];
-  if (!slug) fail("show needs a root slug: brain show <slug>");
+  if (!slug) fail("read-root needs a root slug: brain read-root <slug>");
   if (!ROOT_PAGE_SLUGS.includes(slug))
     fail(`invalid root slug "${slug}" (one of ${ROOT_PAGE_SLUGS.join(", ")})`);
   const path = rootPagePath(slug);
@@ -386,7 +386,7 @@ function brainWireBlock(agent) {
     "",
     "This project follows the **Open Project Brain Standard**. The `brain/` directory is **this project's memory layer** — its durable decisions, requirements, and constraints. Open and read `./BRAIN.md` first — it is the complete, self-contained read/write contract for the brain.",
     "",
-    "**Load context before you start.** Before any task or discussion, run `brain ls`, then `brain cat <id>` / `brain show <slug>` to load the relevant existing decisions and constraints.",
+    "**Load context before you start.** Before any task or discussion, run `brain list-pages`, then `brain read-page <id>` / `brain read-root <slug>` to load the relevant existing decisions and constraints.",
     "",
     "**Capture as you go.** The moment a decision, requirement, constraint, or durable conclusion surfaces — while discussing or while writing code — record it through the `brain` CLI (a decision page, or a root-page update) before moving on. Don't wait to be asked.",
     "",
@@ -468,10 +468,10 @@ when present, otherwise ./brain. ALL reads and writes go through this CLI —
 NEVER hand-edit any file under the brain directory.
 
 Reads (location-independent):
-  root            print the resolved brain dir, its source, and exists/populated
-  ls              list pages (id / title / category / status)
-  cat <id>        print brain/pages/<id>.md
-  show <slug>     print a root page brain/<slug>.md
+  brain-dir         print the resolved brain dir, its source, and exists/populated
+  list-pages        list pages (id / title / category / status)
+  read-page <id>    print brain/pages/<id>.md
+  read-root <slug>  print a root page brain/<slug>.md
 
 Writes (correct-by-construction):
   create-page     --id <kebab> --category <cat> --title <t> [--tags a,b] [--status active] [--source s]
@@ -500,10 +500,10 @@ async function main() {
   const { positional, flags } = parseArgs(rest);
 
   switch (sub) {
-    case "root": return cmdRoot();
-    case "ls": return cmdLs();
-    case "cat": return cmdCat(positional);
-    case "show": return cmdShow(positional);
+    case "brain-dir": return cmdBrainDir();
+    case "list-pages": return cmdListPages();
+    case "read-page": return cmdReadPage(positional);
+    case "read-root": return cmdReadRoot(positional);
     case "create-page": return cmdCreatePage(flags);
     case "update-truth": return cmdUpdateTruth(flags);
     case "append-timeline": return cmdAppendTimeline(flags);

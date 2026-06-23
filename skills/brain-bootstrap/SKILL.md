@@ -86,7 +86,7 @@ From the answers:
 
    ```
    brain reindex
-   brain ls
+   brain list-pages
    ```
 
 2. Report back to the user: which root pages you drafted, which decision pages you created, and anything you marked **low-confidence / needs confirmation**.

@@ -9,7 +9,7 @@ This skill is the operating manual for working with a project's brain under the 
 
 The model is simple: **everything goes through the `brain` CLI.**
 
-- **Read = `brain` read subcommands** (`root` / `ls` / `cat <id>` / `show <slug>`) — location-independent, no need to know where the brain lives.
+- **Read = `brain` read subcommands** (`brain-dir` / `list-pages` / `read-page <id>` / `read-root <slug>`) — location-independent, no need to know where the brain lives.
 - **Write = `brain` write subcommands.** Every mutation (create / update / append / archive / tag / root-page rewrite / reindex) is correct-by-construction, so frontmatter can never be mis-shaped and a compiled_truth rewrite can never silently skip its timeline entry.
 
 > **NEVER hand-edit any file under the brain directory. All reads and writes MUST go through the `brain` CLI. Manual edits are unsupported and illegitimate.** Correctness is guaranteed by construction inside the CLI — there is no validator, and nothing at the file layer can catch or undo a bad manual edit, so a hand edit silently breaks the brain's invariants. Always reach for a `brain` subcommand instead of an editor.
@@ -24,7 +24,7 @@ node <this-skill-bundle>/bin/brain.mjs <subcommand> [flags]
 
 Resolve `<this-skill-bundle>` to the directory this `SKILL.md` lives in. In the brain.md source repository itself that path is `skills/brain-page/bin/brain.mjs`; when the skill is installed globally it is wherever `setup` linked it (e.g. `~/.claude/skills/brain-page/bin/brain.mjs`). Run all commands from the **project root**.
 
-The CLI resolves the brain directory itself: it reads `brainRoot` from `./.mindmux/preferences.json` when present (absolute or relative to the project root), otherwise falls back to `./brain`. A missing file, broken JSON, or absent field all fall back silently. Run `brain root` to see the resolved directory and its source.
+The CLI resolves the brain directory itself: it reads `brainRoot` from `./.mindmux/preferences.json` when present (absolute or relative to the project root), otherwise falls back to `./brain`. A missing file, broken JSON, or absent field all fall back silently. Run `brain brain-dir` to see the resolved directory and its source.
 
 Run `node <bundle>/bin/brain.mjs help` for the full flag reference.
 
@@ -34,10 +34,10 @@ Define a shell function (do **not** use `BRAIN="node <bundle>/bin/brain.mjs"; $B
 
 ```
 brain() { node <bundle>/bin/brain.mjs "$@"; }
-brain root         # print the resolved brain directory + its source (brainRoot / default)
-brain ls           # list every page: id / title / category / status
-brain cat <id>     # print brain/pages/<id>.md
-brain show <slug>  # print a root page brain/<slug>.md
+brain brain-dir       # print the resolved brain directory + its source (brainRoot / default)
+brain list-pages      # list every page: id / title / category / status
+brain read-page <id>  # print brain/pages/<id>.md
+brain read-root <slug> # print a root page brain/<slug>.md
 ```
 
 ## The five page categories

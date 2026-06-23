@@ -12,7 +12,7 @@ Project knowledge shouldn't live only inside some SaaS. brain.md captures it as 
 - Incremental knowledge → individual **pages** under `brain/pages/` (five categories: decision / concept / project / person / reference), each = a rewritable `compiled_truth` + an append-only `timeline`.
 - The AI's operating manual → four **skills** (`brain-setup`, `brain-bootstrap`, `brain-page`, `brain-ingest`) installed into each agent's global skills directory.
 
-The whole idea: **all reads and writes go through the `brain` CLI** — read with `brain ls` / `cat <id>` / `show <slug>`, write with the correct-by-construction write subcommands — so frontmatter is never mis-shaped and a `compiled_truth` rewrite can never silently skip its timeline entry. Hand-editing a brain file is unsupported and illegitimate; there is no validator, and nothing at the file layer can catch a bad manual edit.
+The whole idea: **all reads and writes go through the `brain` CLI** — read with `brain list-pages` / `read-page <id>` / `read-root <slug>`, write with the correct-by-construction write subcommands — so frontmatter is never mis-shaped and a `compiled_truth` rewrite can never silently skip its timeline entry. Hand-editing a brain file is unsupported and illegitimate; there is no validator, and nothing at the file layer can catch a bad manual edit.
 
 ## Layout
 
@@ -64,9 +64,9 @@ When scaffolded into a project, `brain-setup` also wires the chosen agents' conf
 
    ```bash
    brain() { node skills/brain-page/bin/brain.mjs "$@"; }
-   brain root                                   # where is the brain? (brainRoot or ./brain)
-   brain ls                                     # list pages
-   brain cat my-decision                        # read a page
+   brain brain-dir                              # where is the brain? (brainRoot or ./brain)
+   brain list-pages                             # list pages
+   brain read-page my-decision                  # read a page
    brain create-page --id my-decision --category decision --title "Use X over Y"
    echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
    brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"

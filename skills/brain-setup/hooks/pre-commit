@@ -29,7 +29,7 @@ cli=$(find_cli) || {
 
 # Ask the CLI where the brain lives — honours the brainRoot redirect in
 # ./.mindmux/preferences.json, or falls back to ./brain. First line = abs path.
-brain_dir=$(node "$cli" root | head -1)
+brain_dir=$(node "$cli" brain-dir | head -1)
 
 # Nothing to do if this project has no brain.
 [ -d "$brain_dir" ] || exit 0

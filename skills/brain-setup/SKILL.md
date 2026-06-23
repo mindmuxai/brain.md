@@ -1,6 +1,6 @@
 ---
 name: brain-setup
-description: Bootstrap the Open Project Brain Standard into the current project — ensure BRAIN.md is in the project root, resolve the brain data location with `brain root` (brainRoot-aware), scaffold the brain/ skeleton there only if it is empty (never a second local ./brain when redirected), idempotently wire CLAUDE.md / AGENTS.md, and optionally install a pre-commit hook.
+description: Bootstrap the Open Project Brain Standard into the current project — ensure BRAIN.md is in the project root, resolve the brain data location with `brain brain-dir` (brainRoot-aware), scaffold the brain/ skeleton there only if it is empty (never a second local ./brain when redirected), idempotently wire CLAUDE.md / AGENTS.md, and optionally install a pre-commit hook.
 ---
 
 # brain-setup
@@ -29,12 +29,12 @@ Do **not** stop here just because `BRAIN.md` exists — its presence says nothin
 First, resolve where the brain data actually lives — never assume `./brain`. Ask the CLI:
 
 ```
-node <brain-page-bundle>/bin/brain.mjs root
+node <brain-page-bundle>/bin/brain.mjs brain-dir
 ```
 
 (The brain-page skill carries the CLI; in the brain.md source repo it is `skills/brain-page/bin/brain.mjs`, globally it is e.g. `~/.claude/skills/brain-page/bin/brain.mjs`.)
 
-`brain root` reads `brainRoot` from `./.mindmux/preferences.json` when present (otherwise falls back to `./brain`) and prints, on separate lines: the **resolved directory**, a human-readable origin, `source:` (`brainRoot` or `default`), `exists:` (`true`/`false`), and `populated:` (`true`/`false` — whether the location already holds a root page or any page under `pages/`). Read those lines instead of guessing or `stat`-ing by hand.
+`brain brain-dir` reads `brainRoot` from `./.mindmux/preferences.json` when present (otherwise falls back to `./brain`) and prints, on separate lines: the **resolved directory**, a human-readable origin, `source:` (`brainRoot` or `default`), `exists:` (`true`/`false`), and `populated:` (`true`/`false` — whether the location already holds a root page or any page under `pages/`). Read those lines instead of guessing or `stat`-ing by hand.
 
 Branch on the resolved state:
 
