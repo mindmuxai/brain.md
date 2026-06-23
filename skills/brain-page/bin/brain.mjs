@@ -120,7 +120,6 @@ function cmdCreatePage(flags) {
     fail(`invalid --status "${status}" (one of ${PAGE_STATUSES.join(" / ")})`);
   if (existsSync(pagePath(id))) fail(`brain/pages/${id}.md already exists`);
 
-  const created = todayStamp();
   const stamp = nowStamp();
   const fmLines = [
     `id: ${id}`,
@@ -129,7 +128,7 @@ function cmdCreatePage(flags) {
     `status: ${status}`,
   ];
   if (tags.length) fmLines.push(`tags: ${yamlInlineArray(tags)}`);
-  fmLines.push(`created: ${yamlScalar(created)}`);
+  fmLines.push(`created: ${yamlScalar(stamp)}`);
   fmLines.push(`updated: ${yamlScalar(stamp)}`);
 
   const timeline = formatTimelineEntry({
