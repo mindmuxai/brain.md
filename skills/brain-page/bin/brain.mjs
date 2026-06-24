@@ -190,7 +190,8 @@ async function cmdUpdateTruth(flags) {
   const fm = setFrontmatterField(doc.rawFrontmatter, "updated", yamlScalar(stamp));
   const content = `---\n${fm}\n---\n${body.startsWith("\n") ? "" : "\n"}${body}`;
   writeFileAtomic(pagePath(id), content);
-  console.log(`brain: rewrote compiled_truth + appended a decision timeline entry to brain/pages/${id}.md`);
+  const { count } = reindexBrain();
+  console.log(`brain: rewrote compiled_truth + appended a decision timeline entry to brain/pages/${id}.md and reindexed (${count} pages)`);
 }
 
 function cmdAppendTimeline(flags) {
@@ -212,7 +213,8 @@ function cmdAppendTimeline(flags) {
   const fm = setFrontmatterField(doc.rawFrontmatter, "updated", yamlScalar(stamp));
   const content = `---\n${fm}\n---\n${body.startsWith("\n") ? "" : "\n"}${body}`;
   writeFileAtomic(pagePath(id), content);
-  console.log(`brain: appended a ${kind} timeline entry to brain/pages/${id}.md`);
+  const { count } = reindexBrain();
+  console.log(`brain: appended a ${kind} timeline entry to brain/pages/${id}.md and reindexed (${count} pages)`);
 }
 
 function cmdArchivePage(flags) {
