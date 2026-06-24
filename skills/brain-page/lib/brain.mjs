@@ -321,7 +321,7 @@ export function rootPagePath(slug) {
 /** Rebuild brain/index.md from brain/pages/*.md. Returns { path, count }. */
 export function reindexBrain() {
   const pages = listPages();
-  const rows = pages
+  const entries = pages
     .map((p) => {
       const fm = p.frontmatter;
       const id = fm.id || p.id;
@@ -329,28 +329,50 @@ export function reindexBrain() {
       const category = fm.category || "?";
       const status = fm.status || "?";
       const tags = Array.isArray(fm.tags) ? fm.tags.join(", ") : fm.tags || "";
-      const updated = fm.updated || fm.created || "";
-      return `| [[${id}]] | ${title} | ${category} | ${status} | ${tags} | ${updated} |`;
+      const summary = firstSentence(extractSection(p.body, "compiled_truth")) || title;
+      const meta = [`category: ${category}`];
+      if (status !== "active") meta.push(`status: ${status}`);
+      if (tags) meta.push(`tags: [${tags}]`);
+      return `- [${id}](pages/${id}.md) — ${meta.join(" | ")} | ${summary}`;
     })
     .join("\n");
-
-  const active = pages.filter((p) => (p.frontmatter.status || "active") === "active").length;
 
   const lines = [
     "# Brain Index",
     "",
-    "> Generated automatically by `brain reindex` — do not edit by hand. Re-run it after changing `brain/pages/`.",
+    `_Auto-generated. Last updated ${new Date().toISOString()}._`,
     "",
-    `Pages: ${pages.length} (active: ${active})`,
-    "",
-    "| id | title | category | status | tags | updated |",
-    "|----|-------|----------|--------|------|---------|",
-    rows || "| _(no pages yet)_ | | | | | |",
+    entries || "_(no Pages yet)_",
     "",
   ];
 
   writeFileAtomic(INDEX_PATH, lines.join("\n"));
   return { path: INDEX_PATH, count: pages.length };
+}
+
+function firstSentence(text) {
+  if (!text) return "";
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+  const limit = Math.min(trimmed.length, 140);
+  let end = limit;
+  for (let i = 0; i < limit; i += 1) {
+    const ch = trimmed[i];
+    if (ch === "\n" || ch === "。") {
+      end = i + 1;
+      break;
+    }
+    if (ch === "." && !isWordChar(trimmed[i - 1]) && !isWordChar(trimmed[i + 1])) {
+      end = i + 1;
+      break;
+    }
+  }
+  const raw = trimmed.slice(0, end);
+  return raw.replace(/\n/g, " ").trim();
+}
+
+function isWordChar(ch) {
+  return typeof ch === "string" && /[A-Za-z0-9_-]/.test(ch);
 }
 
 /** Check every [[page-id]] resolves. Returns { broken, rootRefs, pageCount, rootCount }. */
