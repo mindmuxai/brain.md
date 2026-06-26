@@ -116,9 +116,12 @@ echo "<root page body markdown>" | brain update-root <slug>
 ### Index / checks
 
 ```
-brain reindex      # rebuild brain/index.md (also run automatically by the write commands above)
-brain lint-links   # verify every [[page-id]] resolves
+brain normalize-timestamps [--dry-run] # migrate created / updated / timeline time values to YYYY-MM-DDTHH:MM:SS
+brain reindex              # rebuild brain/index.md (also run automatically by the write commands above)
+brain lint-links           # verify current [[page-id]] links resolve
 ```
+
+`lint-links` treats Page `compiled_truth` as the current knowledge graph and root page bodies as current root knowledge. It intentionally does not lint Page timeline entries, because timeline is append-only provenance and may contain historical syntax examples or obsolete references.
 
 ## Why there is no validator
 

@@ -128,18 +128,51 @@ function unquote(s) {
   return s;
 }
 
-/**
- * Extract a named `## section` body from a page. Returns the text between the
- * heading and the next `## ` heading (or EOF). null when the section is absent.
- */
-export function extractSection(body, name) {
+function sectionRange(body, name) {
   const re = new RegExp(`^##\\s+${escapeRe(name)}[ \\t]*$`, "m");
   const m = body.match(re);
   if (!m) return null;
   const start = m.index + m[0].length;
+
+  if (name === "compiled_truth") {
+    const rest = body.slice(start);
+    const timeline = rest.match(/^##\s+timeline[ \t]*$/m);
+    return {
+      headingStart: m.index,
+      headingEnd: start,
+      contentStart: start,
+      contentEnd: timeline ? start + timeline.index : body.length,
+    };
+  }
+
+  if (name === "timeline") {
+    return {
+      headingStart: m.index,
+      headingEnd: start,
+      contentStart: start,
+      contentEnd: body.length,
+    };
+  }
+
   const rest = body.slice(start);
   const next = rest.search(/^##\s+/m);
-  return (next === -1 ? rest : rest.slice(0, next)).trim();
+  return {
+    headingStart: m.index,
+    headingEnd: start,
+    contentStart: start,
+    contentEnd: next === -1 ? body.length : start + next,
+  };
+}
+
+/**
+ * Extract a named `## section` body. For brain pages, `compiled_truth` spans
+ * until the canonical `## timeline` section, so nested `##` headings remain
+ * part of the truth body instead of being mistaken for section boundaries.
+ */
+export function extractSection(body, name) {
+  const range = sectionRange(body, name);
+  if (!range) return null;
+  return body.slice(range.contentStart, range.contentEnd).trim();
 }
 
 function escapeRe(s) {
@@ -164,10 +197,9 @@ export function listPages() {
 /** List the root page files that actually exist under brain/. */
 export function listRootPages() {
   if (!existsSync(BRAIN_DIR)) return [];
-  return readdirSync(BRAIN_DIR)
-    .filter((f) => f.endsWith(".md") && f !== "index.md")
+  return ROOT_PAGE_SLUGS.map((slug) => `${slug}.md`)
+    .filter((f) => existsSync(join(BRAIN_DIR, f)))
     .filter((f) => statSync(join(BRAIN_DIR, f)).isFile())
-    .sort()
     .map((f) => loadDoc(join(BRAIN_DIR, f)));
 }
 
@@ -186,7 +218,7 @@ export function loadDoc(path) {
 
 /** Strip fenced code blocks and inline code so their contents aren't scanned. */
 export function stripCode(text) {
-  return text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
+  return text.replace(/```[\s\S]*?```/g, "").replace(/`+[^`\n]*`+/g, "");
 }
 
 /**
@@ -215,12 +247,6 @@ const pad2 = (n) => String(n).padStart(2, "0");
 export function nowStamp() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-}
-
-/** `YYYY-MM-DD` local-time stamp for root page `updated`. */
-export function todayStamp() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 /** Render a scalar for a YAML-ish frontmatter / timeline value, quoting when needed. */
@@ -260,29 +286,20 @@ export function setFrontmatterField(rawFm, key, value) {
 
 /** Replace the body of a `## name` section, wholesale. Throws if absent. */
 export function replaceSection(body, name, newContent) {
-  const re = new RegExp(`^##\\s+${escapeRe(name)}[ \\t]*$`, "m");
-  const m = body.match(re);
-  if (!m) throw new Error(`section \`## ${name}\` not found`);
-  const headEnd = m.index + m[0].length;
-  const rest = body.slice(headEnd);
-  const nextRel = rest.search(/^##\s+/m);
-  const head = body.slice(0, headEnd);
-  const after = nextRel === -1 ? "" : rest.slice(nextRel);
-  const block = `${head}\n\n${newContent.trim()}\n`;
-  return after ? `${block}\n${after}` : block;
+  const range = sectionRange(body, name);
+  if (!range) throw new Error(`section \`## ${name}\` not found`);
+  const before = body.slice(0, range.headingEnd);
+  const after = body.slice(range.contentEnd).replace(/^\s+/, "");
+  const block = `${before}\n\n${newContent.trim()}\n`;
+  return after ? `${block}\n\n${after}` : block;
 }
 
 /** Append raw text to the end of a `## name` section. Throws if absent. */
 export function appendToSection(body, name, text) {
-  const re = new RegExp(`^##\\s+${escapeRe(name)}[ \\t]*$`, "m");
-  const m = body.match(re);
-  if (!m) throw new Error(`section \`## ${name}\` not found`);
-  const headEnd = m.index + m[0].length;
-  const rest = body.slice(headEnd);
-  const nextRel = rest.search(/^##\s+/m);
-  const sectionEnd = nextRel === -1 ? body.length : headEnd + nextRel;
-  const before = body.slice(0, sectionEnd).replace(/\s+$/, "");
-  const after = body.slice(sectionEnd);
+  const range = sectionRange(body, name);
+  if (!range) throw new Error(`section \`## ${name}\` not found`);
+  const before = body.slice(0, range.contentEnd).replace(/\s+$/, "");
+  const after = body.slice(range.contentEnd);
   const block = `${before}\n\n${text.trim()}\n`;
   return after ? `${block}\n${after.replace(/^\s+/, "")}` : block;
 }
@@ -312,6 +329,64 @@ export function pagePath(id) {
 
 export function rootPagePath(slug) {
   return join(BRAIN_DIR, `${slug}.md`);
+}
+
+export function normalizeTimestampValue(value) {
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return `${raw}T00:00:00`;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return `${raw}:00`;
+  return raw;
+}
+
+function normalizeTimestampScalars(text, fields) {
+  const keyPattern = fields.map(escapeRe).join("|");
+  return text.replace(
+    new RegExp(`^(\\s*(?:-\\s+)?(?:${keyPattern}):\\s*)(["']?)(\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2})?)\\2(\\s*)$`, "gm"),
+    (_match, prefix, quote, value, suffix) => `${prefix}${quote}${normalizeTimestampValue(value)}${quote}${suffix}`,
+  );
+}
+
+function replaceSectionContent(body, name, newContent) {
+  const range = sectionRange(body, name);
+  if (!range) return body;
+  const before = body.slice(0, range.contentStart);
+  const after = body.slice(range.contentEnd);
+  return `${before}${newContent}${after}`;
+}
+
+function transformSectionContent(body, name, transform) {
+  const range = sectionRange(body, name);
+  if (!range) return body;
+  return replaceSectionContent(body, name, transform(body.slice(range.contentStart, range.contentEnd)));
+}
+
+function normalizeLegacyTimelineHeading(body) {
+  return body.replace(/^##[ \t]+timeline(?:[ \t]*-[ \t]*|[ \t]+)time:/im, "## timeline\n\n- time:");
+}
+
+export function normalizeBrainTimestamps({ dryRun = false } = {}) {
+  const docs = [...listPages(), ...listRootPages()];
+  const changed = [];
+  for (const doc of docs) {
+    const isPage = doc.path.startsWith(PAGES_DIR);
+    const frontmatterKeys = isPage ? ["created", "updated"] : ["updated"];
+    const normalizedFm = normalizeTimestampScalars(doc.rawFrontmatter || "", frontmatterKeys);
+    const body = isPage ? normalizeLegacyTimelineHeading(doc.body) : doc.body;
+    const normalizedBody = isPage
+      ? transformSectionContent(
+          body,
+          "timeline",
+          (timeline) => normalizeTimestampScalars(timeline, ["time"]),
+        )
+      : body;
+    const normalized = doc.rawFrontmatter === null
+      ? normalizedBody
+      : `---\n${normalizedFm}\n---\n${normalizedBody.startsWith("\n") ? "" : "\n"}${normalizedBody}`;
+    if (normalized === doc.raw) continue;
+    if (!dryRun) writeFileAtomic(doc.path, normalized);
+    changed.push(doc.path);
+  }
+  return { changed, count: changed.length };
 }
 
 // ---------------------------------------------------------------------------
@@ -384,7 +459,18 @@ export function lintBrainLinks() {
 
   const broken = [];
   const rootRefs = [];
-  for (const doc of [...pages, ...rootPages]) {
+  // Pages lint only the current compiled_truth. Timeline is append-only
+  // provenance: summaries may include historical syntax examples or obsolete
+  // references that should not make the current knowledge graph fail lint.
+  for (const doc of pages) {
+    const truth = extractSection(doc.body, "compiled_truth") || "";
+    for (const target of findWikiLinks(truth)) {
+      if (pageIds.has(target)) continue;
+      if (rootSlugs.has(target)) rootRefs.push({ from: doc.path, target });
+      else broken.push({ from: doc.path, target });
+    }
+  }
+  for (const doc of rootPages) {
     for (const target of findWikiLinks(doc.body)) {
       if (pageIds.has(target)) continue;
       if (rootSlugs.has(target)) rootRefs.push({ from: doc.path, target });

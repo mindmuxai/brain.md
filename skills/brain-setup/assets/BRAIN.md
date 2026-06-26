@@ -156,7 +156,8 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 | `archive_page` | `brain archive-page --id <id> [--reversal-summary "<s>"]` — sets `status: archived`, optionally appends a `kind: reversal` entry, reindexes. |
 | `set_page_tags` | `brain set-tags --id <id> --tags a,b,c` — rewrites the frontmatter tags, reindexes. |
 | `update_root_page` | `brain update-root <slug>` with the body on **stdin** — rewrites `brain/<slug>.md` wholesale, regenerates frontmatter, guarantees the canonical H1; root pages have no timeline. |
-| `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. |
+| `normalize_timestamps` | `brain normalize-timestamps [--dry-run]` — migrates `created`, `updated`, and timeline `time` values to second precision (`YYYY-MM-DDTHH:MM:SS`) and reindexes unless `--dry-run` is used. |
+| `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. `lint-links` checks Page `compiled_truth` and root page bodies as current knowledge; Page timeline entries are append-only provenance and are not linted. |
 | wire an agent's config | `brain wire --agent <claude-code\|codex>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |
 
 ---

@@ -2,7 +2,7 @@
 slug: architecture
 title: System architecture
 role: system architecture
-updated: "2026-06-22"
+updated: "2026-06-22T00:00:00"
 ---
 
 ## Overview

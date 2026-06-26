@@ -2,7 +2,7 @@
 slug: stack
 title: Tech stack
 role: tech-stack choices
-updated: "2026-06-22"
+updated: "2026-06-22T00:00:00"
 ---
 
 ## Technology choices
