@@ -116,7 +116,6 @@ echo "<root page body markdown>" | brain update-root <slug>
 ### Index / checks
 
 ```
-brain normalize-timestamps [--dry-run] # migrate created / updated / timeline time values to YYYY-MM-DDTHH:MM:SS
 brain reindex              # rebuild brain/index.md (also run automatically by the write commands above)
 brain lint-links           # verify current [[page-id]] links resolve
 ```

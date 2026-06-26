@@ -331,64 +331,6 @@ export function rootPagePath(slug) {
   return join(BRAIN_DIR, `${slug}.md`);
 }
 
-export function normalizeTimestampValue(value) {
-  const raw = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return `${raw}T00:00:00`;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return `${raw}:00`;
-  return raw;
-}
-
-function normalizeTimestampScalars(text, fields) {
-  const keyPattern = fields.map(escapeRe).join("|");
-  return text.replace(
-    new RegExp(`^(\\s*(?:-\\s+)?(?:${keyPattern}):\\s*)(["']?)(\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2})?)\\2(\\s*)$`, "gm"),
-    (_match, prefix, quote, value, suffix) => `${prefix}${quote}${normalizeTimestampValue(value)}${quote}${suffix}`,
-  );
-}
-
-function replaceSectionContent(body, name, newContent) {
-  const range = sectionRange(body, name);
-  if (!range) return body;
-  const before = body.slice(0, range.contentStart);
-  const after = body.slice(range.contentEnd);
-  return `${before}${newContent}${after}`;
-}
-
-function transformSectionContent(body, name, transform) {
-  const range = sectionRange(body, name);
-  if (!range) return body;
-  return replaceSectionContent(body, name, transform(body.slice(range.contentStart, range.contentEnd)));
-}
-
-function normalizeLegacyTimelineHeading(body) {
-  return body.replace(/^##[ \t]+timeline(?:[ \t]*-[ \t]*|[ \t]+)time:/im, "## timeline\n\n- time:");
-}
-
-export function normalizeBrainTimestamps({ dryRun = false } = {}) {
-  const docs = [...listPages(), ...listRootPages()];
-  const changed = [];
-  for (const doc of docs) {
-    const isPage = doc.path.startsWith(PAGES_DIR);
-    const frontmatterKeys = isPage ? ["created", "updated"] : ["updated"];
-    const normalizedFm = normalizeTimestampScalars(doc.rawFrontmatter || "", frontmatterKeys);
-    const body = isPage ? normalizeLegacyTimelineHeading(doc.body) : doc.body;
-    const normalizedBody = isPage
-      ? transformSectionContent(
-          body,
-          "timeline",
-          (timeline) => normalizeTimestampScalars(timeline, ["time"]),
-        )
-      : body;
-    const normalized = doc.rawFrontmatter === null
-      ? normalizedBody
-      : `---\n${normalizedFm}\n---\n${normalizedBody.startsWith("\n") ? "" : "\n"}${normalizedBody}`;
-    if (normalized === doc.raw) continue;
-    if (!dryRun) writeFileAtomic(doc.path, normalized);
-    changed.push(doc.path);
-  }
-  return { changed, count: changed.length };
-}
-
 // ---------------------------------------------------------------------------
 // Command implementations (return structured results; the CLI prints/exits)
 // ---------------------------------------------------------------------------

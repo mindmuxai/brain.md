@@ -26,7 +26,7 @@
 //   set-tags        --id --tags
 //   update-root     <slug>          (body read from stdin)
 //   wire            --agent <claude-code|codex>   (wire CLAUDE.md / AGENTS.md to the brain)
-//   normalize-timestamps | reindex | lint-links
+//   reindex | lint-links
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -55,7 +55,6 @@ import {
   writeFileAtomic,
   reindexBrain,
   lintBrainLinks,
-  normalizeBrainTimestamps,
 } from "../lib/brain.mjs";
 
 // ---- argument parsing -------------------------------------------------------
@@ -299,19 +298,6 @@ function cmdReindex() {
   console.log(`reindex: wrote ${path} (${count} page${count === 1 ? "" : "s"})`);
 }
 
-function cmdNormalizeTimestamps(flags) {
-  ensureBrainExists();
-  const dryRun = Boolean(flags["dry-run"]);
-  const { changed, count } = normalizeBrainTimestamps({ dryRun });
-  if (dryRun) {
-    console.log(`normalize-timestamps: would normalize ${count} file${count === 1 ? "" : "s"}`);
-    for (const path of changed) console.log(path);
-    return;
-  }
-  const index = reindexBrain();
-  console.log(`normalize-timestamps: normalized ${count} file${count === 1 ? "" : "s"} and reindexed (${index.count} pages)`);
-}
-
 function cmdLintLinks() {
   ensureBrainExists();
   const { broken, rootRefs, pageCount, rootCount } = lintBrainLinks();
@@ -501,8 +487,6 @@ Wiring (deterministic agent-config):
                   idempotent via <!-- BEGIN brain.md --> … <!-- END brain.md --> markers.
 
 Index / checks:
-  normalize-timestamps [--dry-run]
-                  normalize created / updated / timeline time values to YYYY-MM-DDTHH:MM:SS
   reindex         rebuild brain/index.md
   lint-links      verify [[page-id]] wiki-links resolve
 
@@ -527,7 +511,6 @@ async function main() {
     case "set-tags": return cmdSetTags(flags);
     case "update-root": return cmdUpdateRoot(positional, flags);
     case "wire": return cmdWire(rest);
-    case "normalize-timestamps": return cmdNormalizeTimestamps(flags);
     case "reindex": return cmdReindex();
     case "lint-links": return cmdLintLinks();
     case undefined:
