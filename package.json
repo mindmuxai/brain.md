@@ -1,0 +1,45 @@
+{
+  "name": "brain-md",
+  "version": "0.1.0",
+  "description": "Open Project Brain Standard — install-first, agent-agnostic toolkit. Capture a project's durable knowledge as plain Markdown, read and written through one zero-dependency CLI.",
+  "type": "module",
+  "bin": {
+    "brain-md": "bin/brain-md.mjs",
+    "brain-md-uninstall": "bin/brain-md-uninstall.mjs",
+    "brain": "bin/brain.mjs"
+  },
+  "files": [
+    "bin/",
+    "skills/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"skills/brain-page/test/**/*.test.mjs\""
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://projectbrain.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindmuxai/brain.md.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mindmuxai/brain.md/issues"
+  },
+  "keywords": [
+    "brain",
+    "project-memory",
+    "project-brain",
+    "agent",
+    "claude",
+    "codex",
+    "markdown",
+    "knowledge-base"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

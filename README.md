@@ -56,9 +56,25 @@ and anything readable straight from the code and git history stay where they are
 **1. Install the tools once (global):**
 
 ```bash
-./setup        # symlinks skills/ into every detected agent (~/.claude/skills, ~/.codex/skills, …)
-./uninstall    # reverses it cleanly; never touches any project's brain data
+npx brain-md setup        # copies skills/ into every detected agent (~/.claude/skills, ~/.codex/skills, …)
+npx brain-md uninstall    # reverses it cleanly; never touches any project's brain data
 ```
+
+Or install the package globally and use the `brain-md` command directly:
+
+```bash
+npm install -g brain-md
+brain-md setup                 # interactive: confirms each detected runtime, then copies the bundles
+brain-md uninstall             # removes exactly what was installed
+```
+
+Flags:
+
+- `--project` — install into the **current project's** `.claude/skills`, `.codex/skills`, … instead of your home dir, so a clone is self-contained and team-shareable.
+- `--symlink` — symlink the bundles instead of copying (for developing the toolkit itself).
+- `--yes` / `-y` — non-interactive; install into every runtime without asking (CI).
+
+Copy is the default because symlinks break on Windows and when the source repo moves; `--symlink` stays available for local development.
 
 **2. Initialize a project** — run the **brain-setup** skill in it. It scaffolds `BRAIN.md` +
 the brain skeleton, wires the chosen agents' config files, and can install a pre-commit hook.
@@ -94,11 +110,11 @@ Agent  $ brain read-page config-as-markdown
 
 ## The `brain` CLI
 
-Reading and writing the brain both go through one zero-dependency Node CLI (run with `node`):
+Reading and writing the brain both go through one zero-dependency Node CLI. After
+`brain-md setup` it is on your `PATH` as `brain` (it also ships inside the brain-page
+skill bundle, so agents can run it as `node <bundle>/bin/brain.mjs` directly):
 
 ```bash
-brain() { node skills/brain-page/bin/brain.mjs "$@"; }
-
 brain brain-dir                              # where is the brain?
 brain list-pages                             # list pages
 brain read-page my-decision                  # read a page
