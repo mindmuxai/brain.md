@@ -2,7 +2,7 @@
 slug: roadmap
 title: Roadmap
 role: milestones
-updated: "2026-06-22"
+updated: "2026-06-22T00:00:00"
 ---
 
 ## Milestones

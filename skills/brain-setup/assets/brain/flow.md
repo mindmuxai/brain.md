@@ -2,7 +2,7 @@
 slug: flow
 title: Key flows
 role: key flows
-updated: "2026-06-22"
+updated: "2026-06-22T00:00:00"
 ---
 
 ## End-to-end path of a typical request

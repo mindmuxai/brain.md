@@ -46,7 +46,6 @@ import {
   pagePath,
   rootPagePath,
   nowStamp,
-  todayStamp,
   yamlScalar,
   yamlInlineArray,
   setFrontmatterField,
@@ -281,7 +280,7 @@ async function cmdUpdateRoot(positional, flags) {
     body = `${canonicalH1}\n\n${body}`.trim();
   }
 
-  const stamp = todayStamp();
+  const stamp = nowStamp();
   const fm = [
     `slug: ${slug}`,
     `title: ${yamlScalar(meta.title)}`,
