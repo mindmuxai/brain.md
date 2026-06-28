@@ -74,6 +74,25 @@ ask() {
 
 print_logo
 
+# Install to a stable location so symlinks don't break when the original clone
+# is moved or deleted. On re-runs (e.g. after git pull), this updates in-place.
+INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/brain.md"
+
+if [ "$SCRIPT_DIR" != "$INSTALL_DIR" ]; then
+  echo "setup: installing project to $INSTALL_DIR ..."
+  mkdir -p "$INSTALL_DIR"
+  for f in "$SCRIPT_DIR"/* "$SCRIPT_DIR"/.[!.]*; do
+    case "$f" in
+      */.) continue ;;
+      */..) continue ;;
+      */.git) continue ;;
+    esac
+    cp -R "$f" "$INSTALL_DIR/"
+  done
+  echo "setup: re-running from stable location ..."
+  exec "$INSTALL_DIR/setup" "$@"
+fi
+
 # Candidate agent runtimes: "<label>:<parent-config-dir>:<skills-dir>". A runtime
 # counts as detected only when its parent config dir exists.
 CANDIDATES="Claude:$HOME/.claude:$HOME/.claude/skills Codex:$HOME/.codex:$HOME/.codex/skills OpenCode:$HOME/.config/opencode:$HOME/.config/opencode/skills"
