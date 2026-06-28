@@ -96,9 +96,17 @@ fi
 # Optionally remove the stable install directory.
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/brain.md"
 if [ -d "$INSTALL_DIR" ]; then
-  if ask "Remove the stable install at $INSTALL_DIR?"; then
-    rm -rf "$INSTALL_DIR"
-    echo "uninstall: removed $INSTALL_DIR"
+  if [ -f "$INSTALL_DIR/setup" ] && [ -f "$INSTALL_DIR/uninstall" ] && [ -d "$INSTALL_DIR/skills" ]; then
+    if ask "Remove the stable install at $INSTALL_DIR?"; then
+      rm -rf "$INSTALL_DIR"
+      echo "uninstall: removed $INSTALL_DIR"
+    else
+      echo "uninstall: kept $INSTALL_DIR (re-run setup later without re-cloning)"
+    fi
+  else
+    echo "uninstall: $INSTALL_DIR does not look like a brain.md install; refusing to remove it" >&2
+  fi
+fi
   else
     echo "uninstall: kept $INSTALL_DIR (re-run setup later without re-cloning)"
   fi
