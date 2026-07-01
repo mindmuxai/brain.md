@@ -157,7 +157,7 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 | `set_page_tags` | `brain set-tags --id <id> --tags a,b,c` — rewrites the frontmatter tags, reindexes. |
 | `update_root_page` | `brain update-root <slug>` with the body on **stdin** — rewrites `brain/<slug>.md` wholesale, regenerates frontmatter, guarantees the canonical H1; root pages have no timeline. |
 | `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. `lint-links` checks Page `compiled_truth` and root page bodies as current knowledge; Page timeline entries are append-only provenance and are not linted. |
-| wire an agent's config | `brain wire --agent <claude-code\|codex>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |
+| wire an agent's config | `brain wire --agent <claude-code\|codex\|opencode>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |
 
 ---
 
@@ -166,12 +166,12 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 So that a coding agent picks up this contract automatically, the project's agent-config files point at `BRAIN.md`. This is done **deterministically by the CLI**, never by hand:
 
 ```
-brain wire --agent <claude-code|codex>      # repeatable, or comma-separated: --agent claude-code,codex
+brain wire --agent <claude-code|codex|opencode>      # repeatable, or comma-separated: --agent claude-code,codex,opencode
 ```
 
-- `claude-code → ./CLAUDE.md`, `codex → ./AGENTS.md` (written in the project root).
+- `claude-code → ./CLAUDE.md`, `codex / opencode → ./AGENTS.md` (written in the project root).
 - It writes one **unified, neutral, self-contained brain block**, wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->`: it frames `brain/` as the project's memory layer, tells the agent to read `./BRAIN.md` (this contract), gives the active-memory triggers (load brain context before any task or discussion; capture decisions / requirements / insights through the CLI the moment they surface), states the core rule (all reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes the four brain skills are installed globally.
-- Both files get the **same** block body. The only difference: `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — Codex (which reads `AGENTS.md`) does not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
+- Both files get the **same** block body. The only difference: `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — Codex and OpenCode (which read `AGENTS.md`) do not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
 - **Idempotent** via the markers: no file → created; file without markers → block appended; existing marked block → replaced in place (re-running upgrades, never duplicates).
 
 ---

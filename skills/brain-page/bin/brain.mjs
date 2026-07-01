@@ -25,7 +25,7 @@
 //   archive-page    --id [--reversal-summary]
 //   set-tags        --id --tags
 //   update-root     <slug>          (body read from stdin)
-//   wire            --agent <claude-code|codex>   (wire CLAUDE.md / AGENTS.md to the brain)
+//   wire            --agent <claude-code|codex|opencode>   (wire CLAUDE.md / AGENTS.md to the brain)
 //   reindex | lint-links
 
 import { existsSync, readFileSync } from "node:fs";
@@ -372,6 +372,7 @@ function cmdReadRoot(positional) {
 const WIRE_AGENTS = {
   "claude-code": "CLAUDE.md",
   "codex": "AGENTS.md",
+  "opencode": "AGENTS.md",
 };
 const WIRE_BEGIN = "<!-- BEGIN brain.md -->";
 const WIRE_END = "<!-- END brain.md -->";
@@ -482,8 +483,8 @@ Writes (correct-by-construction):
   update-root     <slug>                                        (body read from stdin)
 
 Wiring (deterministic agent-config):
-  wire            --agent <claude-code|codex>                  (repeatable, or comma-separated)
-                  writes a unified brain block into ./CLAUDE.md (claude-code) / ./AGENTS.md (codex);
+  wire            --agent <claude-code|codex|opencode>          (repeatable, or comma-separated)
+                  writes a unified brain block into ./CLAUDE.md (claude-code) / ./AGENTS.md (codex / opencode);
                   idempotent via <!-- BEGIN brain.md --> … <!-- END brain.md --> markers.
 
 Index / checks:

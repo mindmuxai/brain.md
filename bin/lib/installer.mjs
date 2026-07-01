@@ -149,9 +149,13 @@ function writeManifest(path, entries) {
 // Global mode roots at $HOME; project mode roots at the current working dir.
 function runtimeCandidates(project) {
   const base = project ? process.cwd() : homedir();
+  // OpenCode's config dir differs by scope: project-local at <project>/.opencode,
+  // global at ~/.config/opencode (whereas Claude/Codex use the same segment for both).
+  const opencodeParent = project ? join(base, ".opencode") : join(base, ".config", "opencode");
   return [
     { label: "Claude", parent: join(base, ".claude"), skills: join(base, ".claude", "skills") },
     { label: "Codex", parent: join(base, ".codex"), skills: join(base, ".codex", "skills") },
+    { label: "OpenCode", parent: opencodeParent, skills: join(opencodeParent, "skills") },
   ];
 }
 
@@ -260,7 +264,7 @@ export async function runSetup({ assumeYes = false, symlink = false, project = f
 
   if (!detected.length) {
     die(
-      "setup: no agent config directories detected (looked for ~/.claude, ~/.codex).\n" +
+      "setup: no agent config directories detected (looked for ~/.claude, ~/.codex, ~/.config/opencode).\n" +
         "setup: create one, or use --project to install into this project, then re-run."
     );
   }

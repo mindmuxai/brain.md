@@ -16,7 +16,8 @@ find_cli() {
   for c in \
     "skills/brain-page/bin/brain.mjs" \
     "$HOME/.claude/skills/brain-page/bin/brain.mjs" \
-    "$HOME/.codex/skills/brain-page/bin/brain.mjs"; do
+    "$HOME/.codex/skills/brain-page/bin/brain.mjs" \
+    "$HOME/.config/opencode/skills/brain-page/bin/brain.mjs"; do
     if [ -f "$c" ]; then echo "$c"; return 0; fi
   done
   return 1

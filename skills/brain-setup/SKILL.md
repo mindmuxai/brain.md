@@ -54,17 +54,17 @@ No example pages are scaffolded; the page format is documented in `BRAIN.md` and
 
 The project's agent-config files must point at `BRAIN.md` so agents pick up the contract. Wiring is **deterministic — done by the CLI, not by hand.** Do not hand-write `@import` lines or template paragraphs.
 
-First, **ask the user which agents to wire** for this project (v0.1 supports `claude-code` and `codex`). Then, for each chosen agent, run:
+First, **ask the user which agents to wire** for this project (v0.1 supports `claude-code`, `codex`, and `opencode`). Then, for each chosen agent, run:
 
 ```
-node <brain-page-bundle>/bin/brain.mjs wire --agent <claude-code|codex>
+node <brain-page-bundle>/bin/brain.mjs wire --agent <claude-code|codex|opencode>
 ```
 
-You may pass `--agent` multiple times or comma-separate them, e.g. `wire --agent claude-code,codex`.
+You may pass `--agent` multiple times or comma-separate them, e.g. `wire --agent claude-code,codex,opencode`.
 
 What the command does (so you can explain it):
 
-- Maps `claude-code → ./CLAUDE.md` and `codex → ./AGENTS.md` in the project root.
+- Maps `claude-code → ./CLAUDE.md` and `codex / opencode → ./AGENTS.md` in the project root.
 - Writes one **unified, neutral, self-contained brain block** — wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->` — that names the Open Project Brain Standard, instructs the agent to read `./BRAIN.md` (the full read/write contract), states the core rule (all brain reads/writes go through the `brain` CLI; never hand-edit a brain file), and notes that the four brain skills are installed globally.
 - Both files get the **same** block body; the only difference is that `CLAUDE.md` additionally carries an `@import ./BRAIN.md` line (Claude Code-specific syntax — Codex does not understand `@import`, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction).
 - It is **idempotent** via the markers: absent file → created; existing file without the markers → block appended; existing marked block → replaced in place (so re-running upgrades the block instead of duplicating it).

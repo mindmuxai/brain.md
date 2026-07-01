@@ -122,7 +122,7 @@ brain create-page --id my-decision --category decision --title "Use X over Y"
 echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
 brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
 echo "## Overview …" | brain update-root architecture
-brain wire --agent claude-code,codex         # wire CLAUDE.md / AGENTS.md to BRAIN.md
+brain wire --agent claude-code,codex,opencode         # wire CLAUDE.md / AGENTS.md to BRAIN.md
 brain reindex && brain lint-links
 ```
 
