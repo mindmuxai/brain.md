@@ -1,3 +1,10 @@
+# npm
+node_modules/
+*.tgz
+
+# Project-level install manifest written by `brain-md setup --project`
+.brain.md/
+
 # MindMux client runtime artifacts (task logs, etc.) — not part of the product
 .mindmux/
 
