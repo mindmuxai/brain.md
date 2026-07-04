@@ -25,7 +25,7 @@
 //   archive-page    --id [--reversal-summary]
 //   set-tags        --id --tags
 //   update-root     <slug>          (body read from stdin)
-//   wire            --agent <claude-code|codex|opencode>   (wire CLAUDE.md / AGENTS.md to the brain)
+//   wire            --agent <claude-code|codex|opencode|cursor|pi>   (wire CLAUDE.md / AGENTS.md to the brain)
 //   reindex | lint-links
 
 import { existsSync, readFileSync } from "node:fs";
@@ -373,15 +373,17 @@ const WIRE_AGENTS = {
   "claude-code": "CLAUDE.md",
   "codex": "AGENTS.md",
   "opencode": "AGENTS.md",
+  "cursor": "AGENTS.md",
+  "pi": "AGENTS.md",
 };
 const WIRE_BEGIN = "<!-- BEGIN brain.md -->";
 const WIRE_END = "<!-- END brain.md -->";
 
-// The unified, neutral, self-contained brain block. Both agents get byte-for-byte
+// The unified, neutral, self-contained brain block. Every agent gets byte-for-byte
 // the same body; the ONLY difference is that claude-code additionally carries an
-// `@import ./BRAIN.md` line (an @import is Claude Code-specific syntax — Codex,
-// which reads AGENTS.md, does not understand it, so its block relies on the plain
-// "read ./BRAIN.md" instruction instead).
+// `@import ./BRAIN.md` line (an @import is Claude Code-specific syntax — the other
+// agents, which read AGENTS.md, do not understand it, so their block relies on the
+// plain "read ./BRAIN.md" instruction instead).
 function brainWireBlock(agent) {
   const lines = [
     "## Project Brain",
@@ -483,8 +485,8 @@ Writes (correct-by-construction):
   update-root     <slug>                                        (body read from stdin)
 
 Wiring (deterministic agent-config):
-  wire            --agent <claude-code|codex|opencode>          (repeatable, or comma-separated)
-                  writes a unified brain block into ./CLAUDE.md (claude-code) / ./AGENTS.md (codex / opencode);
+  wire            --agent <claude-code|codex|opencode|cursor|pi>  (repeatable, or comma-separated)
+                  writes a unified brain block into ./CLAUDE.md (claude-code) / ./AGENTS.md (codex / opencode / cursor / pi);
                   idempotent via <!-- BEGIN brain.md --> … <!-- END brain.md --> markers.
 
 Index / checks:

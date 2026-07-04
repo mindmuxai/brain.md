@@ -76,7 +76,7 @@ print_logo
 
 # Candidate agent runtimes: "<label>:<parent-config-dir>:<skills-dir>". A runtime
 # counts as detected only when its parent config dir exists.
-CANDIDATES="Claude:$HOME/.claude:$HOME/.claude/skills Codex:$HOME/.codex:$HOME/.codex/skills OpenCode:$HOME/.config/opencode:$HOME/.config/opencode/skills"
+CANDIDATES="Claude:$HOME/.claude:$HOME/.claude/skills Codex:$HOME/.codex:$HOME/.codex/skills OpenCode:$HOME/.config/opencode:$HOME/.config/opencode/skills Cursor:$HOME/.cursor:$HOME/.cursor/skills Pi:$HOME/.pi/agent:$HOME/.pi/agent/skills"
 
 DETECTED=""
 echo "Detecting supported runtimes:"
@@ -94,7 +94,7 @@ done
 echo
 
 if [ -z "$DETECTED" ]; then
-  echo "setup: no agent config directories detected (looked for ~/.claude, ~/.codex)." >&2
+  echo "setup: no agent config directories detected (looked for ~/.claude, ~/.codex, ~/.config/opencode, ~/.cursor, ~/.pi/agent)." >&2
   echo "setup: create one, or symlink skills/ manually, then re-run." >&2
   exit 1
 fi

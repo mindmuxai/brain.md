@@ -13,7 +13,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache--2.0-171717?style=flat-square" alt="License: Apache-2.0">
   <img src="https://img.shields.io/badge/CLI-zero%20dependencies-171717?style=flat-square" alt="Zero-dependency CLI">
-  <img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-171717?style=flat-square" alt="Agents: Claude Code, Codex">
+  <img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor%20%C2%B7%20Pi-171717?style=flat-square" alt="Agents: Claude Code, Codex, Cursor, Pi">
   <img src="https://img.shields.io/badge/version-0.1.0-171717?style=flat-square" alt="Version 0.1.0">
 </p>
 
@@ -106,7 +106,7 @@ brain create-page --id my-decision --category decision --title "Use X over Y"
 echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
 brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
 echo "## Overview …" | brain update-root architecture
-brain wire --agent claude-code,codex,opencode         # wire CLAUDE.md / AGENTS.md to BRAIN.md
+brain wire --agent claude-code,codex,opencode,cursor,pi   # wire CLAUDE.md / AGENTS.md to BRAIN.md
 brain reindex && brain lint-links
 ```
 
