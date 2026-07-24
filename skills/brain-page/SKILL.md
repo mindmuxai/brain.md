@@ -71,7 +71,7 @@ brain create-page --id <kebab-id> --category <category> --title "<one-line title
   [--tags a,b] [--status active] [--source "<where this came from>"]
 ```
 
-Generates `brain/pages/<id>.md` from the template (frontmatter + `## compiled_truth` + a `## timeline` seeded with one `kind: decision` creation entry), then reindexes. Fill in the real compiled_truth afterwards via `update-truth`.
+Generates `brain/pages/<id>.md` from the template (frontmatter + `<!-- compiled_truth -->` + a visible `## Timeline` seeded with one `kind: decision` creation entry), then reindexes. Fill in the real compiled_truth afterwards via `update-truth`.
 
 ### Rewrite compiled_truth (atomic with its timeline entry)
 
@@ -80,7 +80,7 @@ echo "<new compiled_truth markdown>" | brain update-truth --id <id> \
   --summary "<what changed and why>" [--source "<source>"]
 ```
 
-Reads the new compiled_truth from **stdin**, rewrites the `## compiled_truth` section, and **in the same atomic write** appends a `kind: decision` entry to the timeline and bumps `updated`. Changing the understanding and recording why are inseparable — you cannot do one without the other.
+Reads the new compiled_truth from **stdin**, rewrites the compiled_truth section (canonical marker: `<!-- compiled_truth -->`), and **in the same atomic write** appends a `kind: decision` entry to the visible `## Timeline` section and bumps `updated`. Changing the understanding and recording why are inseparable — you cannot do one without the other.
 
 ### Append a timeline entry (append-only)
 

@@ -128,26 +128,80 @@ function unquote(s) {
   return s;
 }
 
-function sectionRange(body, name) {
-  const re = new RegExp(`^##\\s+${escapeRe(name)}[ \\t]*$`, "m");
-  const m = body.match(re);
+function markerRanges(body, re, after = 0) {
+  re.lastIndex = 0;
+  const ranges = [];
+  for (let m = re.exec(body); m; m = re.exec(body)) {
+    if (m.index < after) continue;
+    ranges.push({
+      headingStart: m.index,
+      headingEnd: m.index + m[0].length,
+      raw: m[0],
+    });
+  }
+  return ranges;
+}
+
+function markerRange(body, re, after = 0) {
+  return markerRanges(body, re, after).at(-1) ?? null;
+}
+
+function firstMarkerRange(body, re) {
+  re.lastIndex = 0;
+  const m = re.exec(body);
   if (!m) return null;
-  const start = m.index + m[0].length;
+  return {
+    headingStart: m.index,
+    headingEnd: m.index + m[0].length,
+    raw: m[0],
+  };
+}
+
+function compiledTruthMarkerRange(body) {
+  return firstMarkerRange(body, /^<!--\s*compiled_truth\s*-->\s*$/gm)
+    ?? firstMarkerRange(body, /^##\s+compiled_truth[ \t]*$/gm);
+}
+
+function timelineMarkerRange(body, after = 0) {
+  const candidates = [
+    ...markerRanges(body, /^##\s+(?:Timeline|timeline)[ \t]*$/gm, after),
+    ...markerRanges(body, /^<!--\s*timeline\s*-->\s*$/gm, after),
+  ].sort((a, b) => a.headingStart - b.headingStart);
+  if (candidates.length === 0) return null;
+
+  // During the short-lived comment-marker format, compiled_truth could still
+  // contain ordinary `## Timeline` headings. The real storage marker is the
+  // last plausible marker before the append-only entries, while stray marker
+  // examples after existing entries should be ignored.
+  return candidates.findLast((candidate) => /^-\s+\S/m.test(body.slice(candidate.headingEnd)))
+    ?? candidates.at(-1);
+}
+
+function sectionRange(body, name) {
+  let marker = null;
+  if (name === "compiled_truth") {
+    marker = compiledTruthMarkerRange(body);
+  } else if (name === "timeline") {
+    marker = timelineMarkerRange(body);
+  } else {
+    marker = firstMarkerRange(body, new RegExp(`^##\\s+${escapeRe(name)}[ \\t]*$`, "gm"));
+  }
+  if (!marker) return null;
+  const start = marker.headingEnd;
 
   if (name === "compiled_truth") {
-    const rest = body.slice(start);
-    const timeline = rest.match(/^##\s+timeline[ \t]*$/m);
+    const timeline = timelineMarkerRange(body, start);
     return {
-      headingStart: m.index,
+      headingStart: marker.headingStart,
       headingEnd: start,
       contentStart: start,
-      contentEnd: timeline ? start + timeline.index : body.length,
+      contentEnd: timeline ? timeline.headingStart : body.length,
     };
   }
 
   if (name === "timeline") {
     return {
-      headingStart: m.index,
+      headingStart: marker.headingStart,
       headingEnd: start,
       contentStart: start,
       contentEnd: body.length,
@@ -157,7 +211,7 @@ function sectionRange(body, name) {
   const rest = body.slice(start);
   const next = rest.search(/^##\s+/m);
   return {
-    headingStart: m.index,
+    headingStart: marker.headingStart,
     headingEnd: start,
     contentStart: start,
     contentEnd: next === -1 ? body.length : start + next,
@@ -165,9 +219,12 @@ function sectionRange(body, name) {
 }
 
 /**
- * Extract a named `## section` body. For brain pages, `compiled_truth` spans
- * until the canonical `## timeline` section, so nested `##` headings remain
- * part of the truth body instead of being mistaken for section boundaries.
+ * Extract a named page section body. For brain pages, `compiled_truth` starts
+ * at `<!-- compiled_truth -->` (legacy `## compiled_truth` is still readable)
+ * and spans until the visible `## Timeline` marker (legacy `## timeline` and
+ * interim `<!-- timeline -->` are still readable), so nested `##` headings
+ * remain part of the truth body instead of being mistaken for section
+ * boundaries.
  */
 export function extractSection(body, name) {
   const range = sectionRange(body, name);
@@ -284,24 +341,58 @@ export function setFrontmatterField(rawFm, key, value) {
   return out.join("\n");
 }
 
-/** Replace the body of a `## name` section, wholesale. Throws if absent. */
-export function replaceSection(body, name, newContent) {
-  const range = sectionRange(body, name);
-  if (!range) throw new Error(`section \`## ${name}\` not found`);
-  const before = body.slice(0, range.headingEnd);
-  const after = body.slice(range.contentEnd).replace(/^\s+/, "");
-  const block = `${before}\n\n${newContent.trim()}\n`;
-  return after ? `${block}\n\n${after}` : block;
+function canonicalSectionMarker(name, raw) {
+  if (name === "compiled_truth") return "<!-- compiled_truth -->";
+  if (name === "timeline") return "## Timeline";
+  return raw;
 }
 
-/** Append raw text to the end of a `## name` section. Throws if absent. */
+function replaceRange(text, start, end, replacement) {
+  return `${text.slice(0, start)}${replacement}${text.slice(end)}`;
+}
+
+function normalizePageSectionMarkers(body) {
+  let out = body;
+  const compiled = compiledTruthMarkerRange(out);
+  if (compiled) {
+    out = replaceRange(out, compiled.headingStart, compiled.headingEnd, "<!-- compiled_truth -->");
+  }
+  const afterCompiled = compiled ? compiled.headingStart + "<!-- compiled_truth -->".length : 0;
+  const timeline = timelineMarkerRange(out, afterCompiled);
+  if (timeline) {
+    out = replaceRange(out, timeline.headingStart, timeline.headingEnd, "## Timeline");
+  }
+  return out;
+}
+
+/** Replace the body of a named section, wholesale. Throws if absent. */
+export function replaceSection(body, name, newContent) {
+  const range = sectionRange(body, name);
+  if (!range) throw new Error(`section \`${name}\` not found`);
+  const before = [
+    body.slice(0, range.headingStart),
+    canonicalSectionMarker(name, body.slice(range.headingStart, range.headingEnd)),
+  ].join("");
+  const after = body.slice(range.contentEnd).replace(/^\s+/, "");
+  const block = `${before}\n\n${newContent.trim()}\n`;
+  return normalizePageSectionMarkers(after ? `${block}\n\n${after}` : block);
+}
+
+/** Append raw text to the end of a named section. Throws if absent. */
 export function appendToSection(body, name, text) {
   const range = sectionRange(body, name);
-  if (!range) throw new Error(`section \`## ${name}\` not found`);
-  const before = body.slice(0, range.contentEnd).replace(/\s+$/, "");
+  if (!range) throw new Error(`section \`${name}\` not found`);
+  const sectionContent = name === "timeline"
+    ? body.slice(range.headingEnd, range.contentEnd).replace(/\n+<!--\s*timeline\s*-->\s*$/m, "")
+    : body.slice(range.headingEnd, range.contentEnd);
+  const before = [
+    body.slice(0, range.headingStart),
+    canonicalSectionMarker(name, body.slice(range.headingStart, range.headingEnd)),
+    sectionContent,
+  ].join("").replace(/\s+$/, "");
   const after = body.slice(range.contentEnd);
   const block = `${before}\n\n${text.trim()}\n`;
-  return after ? `${block}\n${after.replace(/^\s+/, "")}` : block;
+  return normalizePageSectionMarkers(after ? `${block}\n${after.replace(/^\s+/, "")}` : block);
 }
 
 /** Format a timeline entry from fields. */

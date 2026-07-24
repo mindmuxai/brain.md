@@ -91,11 +91,11 @@ created: "2026-06-22T12:00:00"  # required
 updated: "2026-06-22T12:00:00"  # maintained by the CLI
 ---
 
-## compiled_truth
+<!-- compiled_truth -->
 
 <current best understanding, rewritable as a whole>
 
-## timeline
+## Timeline
 
 - time: 2026-06-22T12:00:00
   kind: decision
