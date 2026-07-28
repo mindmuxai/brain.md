@@ -143,7 +143,8 @@ function markerRanges(body, re, after = 0) {
 }
 
 function markerRange(body, re, after = 0) {
-  return markerRanges(body, re, after).at(-1) ?? null;
+  const ranges = markerRanges(body, re, after);
+  return ranges.length ? ranges[ranges.length - 1] : null;
 }
 
 function firstMarkerRange(body, re) {
@@ -173,8 +174,15 @@ function timelineMarkerRange(body, after = 0) {
   // contain ordinary `## Timeline` headings. The real storage marker is the
   // last plausible marker before the append-only entries, while stray marker
   // examples after existing entries should be ignored.
-  return candidates.findLast((candidate) => /^-\s+\S/m.test(body.slice(candidate.headingEnd)))
-    ?? candidates.at(-1);
+  for (let i = candidates.length - 1; i >= 0; i -= 1) {
+    const candidate = candidates[i];
+    const nextCandidate = candidates[i + 1] ?? null;
+    const contentEnd = nextCandidate ? nextCandidate.headingStart : body.length;
+    if (/^-\s+time:\s+\S/m.test(body.slice(candidate.headingEnd, contentEnd))) {
+      return candidate;
+    }
+  }
+  return candidates[candidates.length - 1];
 }
 
 function sectionRange(body, name) {

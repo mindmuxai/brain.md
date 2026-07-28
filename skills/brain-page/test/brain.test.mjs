@@ -354,6 +354,50 @@ test("ignores stray interim timeline comment after existing timeline entries", a
   assert.equal([...body.matchAll(/^## Timeline$/gm)].length, 1);
 });
 
+test("uses final empty Timeline marker as compiled_truth boundary", async (t) => {
+  const project = makeProject(t);
+
+  writeFileSync(
+    join(project, "brain", "pages", "empty-timeline.md"),
+    [
+      "---",
+      "id: empty-timeline",
+      "category: concept",
+      "title: Empty timeline",
+      'created: "2026-06-22T00:00:00"',
+      'updated: "2026-06-22T00:00:00"',
+      "---",
+      "",
+      "<!-- compiled_truth -->",
+      "",
+      "A normal section that mentions timeline history:",
+      "",
+      "## Timeline",
+      "",
+      "- this is ordinary compiled_truth content, not a timeline entry",
+      "",
+      "## Timeline",
+      "",
+    ].join("\n"),
+  );
+
+  const brain = await loadBrain();
+  const doc = brain.loadDoc(join(project, "brain", "pages", "empty-timeline.md"));
+  const entry = brain.formatTimelineEntry({
+    time: "2026-06-23T00:00:00",
+    kind: "note",
+    summary: "first real timeline entry",
+  });
+
+  const truth = brain.extractSection(doc.body, "compiled_truth");
+  const body = brain.appendToSection(doc.body, "timeline", entry);
+
+  assert.match(truth, /ordinary compiled_truth content/);
+  assert.doesNotMatch(truth, /first real timeline entry/);
+  assert.match(body, /ordinary compiled_truth content[\s\S]*summary: first real timeline entry/);
+  assert.equal([...body.matchAll(/^## Timeline$/gm)].length, 2);
+});
+
 test("listRootPages only returns canonical root pages", async (t) => {
   const project = makeProject(t);
 
