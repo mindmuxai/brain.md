@@ -38,6 +38,8 @@ brain init            # ensure BRAIN.md, scaffold empty brain, default-wire CLAU
 brain wire            # default wire both agent config files (optional --agent subset / all)
 brain install-hooks   # opt-in Claude Code SessionStart snapshot (project-local .claude/settings.json)
 brain uninstall-hooks # remove that SessionStart hook
+brain install-hooks --agent codex   # Codex project-local hooks.json; startup/resume/compact
+brain uninstall-hooks --agent codex # remove only the Codex hook
 brain brain-dir       # print the resolved brain directory + its source (brainRoot / default)
 brain list-pages      # list every page: id / title / category / status
 brain read-page <id>  # print brain/pages/<id>.md
@@ -143,3 +145,20 @@ There is deliberately no `validate` command. Because every write goes through th
 - Always reference another page with `[[page-id]]` (the bare id, without brackets, is for filenames / CLI flags).
 - After adding references, run `lint-links` to confirm nothing is broken.
 - Do **not** wrap root-page slugs, file paths, ordinary words, or uncertain entities in `[[ ]]`.
+
+## Codex context recovery
+
+Hook support targets Codex CLI 0.153.4+, Node 18+, and POSIX `sh`/`awk`. Trust the
+project and review the installed hook with `/hooks`; installation does not enable
+features or grant trust. Uninstall before moving a project, then reinstall.
+Codex snapshots contain at most 8 KiB of complete listing rows; run `list-pages`
+for the full index and `read-page <id>` for details. Hook failures are non-blocking.
+
+With Astra native notes/history available, keep relevant page IDs and unresolved
+task state in notes, use history for earlier task evidence, and re-read current
+brain pages after context rollover. Do not copy task history into the brain.
+Experimental context management is separately enabled with
+`features.context_management.experimental_mode = true` and a new task; check
+[current eligibility](https://learn.chatgpt.com/docs/models#experimental-context-management).
+Automatic experimental-rollover delivery is not yet runtime-verified; explicit CLI
+reads remain the fallback. Hooks never write native notes or brain pages.
