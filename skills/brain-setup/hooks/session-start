@@ -1,12 +1,7 @@
 #!/bin/sh
 # brain.md SessionStart hook — inject a compact `brain list-pages` snapshot
-# into Claude Code or Codex context so a session starts brain-aware.
-#
-# Convenience layer, not a hard dependency: any failure exits 0 with no output.
-# NEVER reads or writes brain markdown files; only shells out to the `brain` CLI.
-#
-# Locates the brain-page skill's CLI from a few likely places.
-# Override by exporting BRAIN_CLI=/abs/path/to/brain-page/bin/brain.mjs.
+
+# Hook failures must not block sessions.
 set -e
 trap 'exit 0' EXIT
 exec 2>/dev/null

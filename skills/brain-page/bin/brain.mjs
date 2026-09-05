@@ -393,8 +393,6 @@ const DEFAULT_WIRE_AGENTS = ["claude-code", "codex"];
 const WIRE_BEGIN = "<!-- BEGIN brain.md -->";
 const WIRE_END = "<!-- END brain.md -->";
 
-// The unified, neutral, self-contained brain block. Every agent gets the same
-// core contract; Claude adds an @import and Codex adds native context guidance.
 function brainWireBlock(agent) {
   const lines = [
     "## Project Brain",

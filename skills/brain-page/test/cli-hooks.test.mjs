@@ -372,7 +372,6 @@ test("Codex and Claude install/remove independently and preserve mixed hook grou
   assert.equal(readFileSync(settings, "utf8"), first);
   assert.equal(runBrain(project, ["install-hooks", "--agent=claude-code"], { env: { HOME: home } }).status, 0);
   const claude = readFileSync(settingsPath(project), "utf8");
-  // A sibling inside our matcher group must survive removal too.
   const mixed = codexSettings(project);
   mixed.hooks.SessionStart.at(-1).hooks.push({ type: "command", command: "echo keep" });
   writeFileSync(settings, JSON.stringify(mixed));
