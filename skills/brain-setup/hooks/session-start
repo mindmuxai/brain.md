@@ -51,7 +51,7 @@ pages=$(invoke list-pages 2>/dev/null)
 [ -n "$pages" ] || exit 0
 
 if [ "${1:-}" = codex ]; then
-  # ponytail: byte budget, not tokens; keep Codex's own context limit as a backstop.
+  # 8 KiB byte budget, not tokens; Codex's own context limit remains the backstop.
   printf '%s\n' "$pages" | LC_ALL=C awk '
     BEGIN {
       output = "Project brain pages (brain list-pages):\nRead current details with brain read-page <id>.\n\n"

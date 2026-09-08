@@ -412,6 +412,7 @@ function brainWireBlock(agent) {
     "The brain skills (`brain-setup`, `brain-page`, `brain-ingest`, `brain-bootstrap`) are installed in your global skills directory. To scaffold a new project, run `node <brain-page-skill-dir>/bin/brain.mjs init` from its root.",
   ];
   if (agent === "codex") lines.push(
+    "",
     "If native notes/history are available, keep relevant brain page IDs and unresolved task state in notes; search history for earlier task evidence. After context rollover, re-read relevant pages through the CLI for current project facts. Do not copy task history into the brain.",
   );
   if (agent === "claude-code") lines.splice(3, 0, "@import ./BRAIN.md");
