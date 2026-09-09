@@ -1,6 +1,6 @@
 ---
 name: brain-setup
-description: Bootstrap the Open Project Brain Standard into the current project — prefer `brain init` (ensure BRAIN.md, scaffold empty brain brainRoot-aware, default-wire CLAUDE.md + AGENTS.md). Optionally install a pre-commit hook and a Claude Code SessionStart hook.
+description: Bootstrap the Open Project Brain Standard into the current project — prefer `brain init` (ensure BRAIN.md, scaffold empty brain brainRoot-aware, default-wire CLAUDE.md + AGENTS.md). Optionally install a pre-commit hook and a Claude Code or Codex SessionStart hook.
 ---
 
 # brain-setup
@@ -13,7 +13,7 @@ This skill bootstraps a project into the **Open Project Brain Standard**: it dro
 node <brain-page-bundle>/bin/brain.mjs init
 ```
 
-That command ensures `BRAIN.md`, scaffolds empty brain data (brainRoot-aware), and **default-wires** `CLAUDE.md` + `AGENTS.md` (create if missing; if present, only update/append the marked brain block — never whole-file overwrite). Use the steps below when you need the optional pre-commit hook, the optional Claude Code SessionStart hook, or are explaining the flow.
+That command ensures `BRAIN.md`, scaffolds empty brain data (brainRoot-aware), and **default-wires** `CLAUDE.md` + `AGENTS.md` (create if missing; if present, only update/append the marked brain block — never whole-file overwrite). Use the steps below when you need the optional pre-commit hook, the optional Claude Code or Codex SessionStart hook, or are explaining the flow.
 
 > **NEVER hand-edit any file under the brain directory. All reads and writes MUST go through the `brain` CLI. Manual edits are unsupported and illegitimate.** This scaffold creates the brain once; from then on every read and write is a `brain` subcommand. There is no validator and nothing at the file layer can catch a bad manual edit, so a hand edit silently breaks the brain's invariants.
 
@@ -74,7 +74,7 @@ What the command does (so you can explain it):
 
 - Default maps to **both** `./CLAUDE.md` (claude-code block with `@import`) and `./AGENTS.md` (shared block for codex / opencode / cursor / pi).
 - Writes one **unified, neutral, self-contained brain block** — wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->` — that tells the agent to read `./BRAIN.md`, states the **session-companion** rules (load brain at task start; capture decisions/constraints when they settle during coding; skip pure implementation; reverse/update when overturning; all via the `brain` CLI; never hand-edit), and notes the four brain skills are installed globally.
-- Both files get the **same** block body; the only difference is that `CLAUDE.md` additionally carries an `@import ./BRAIN.md` line (Claude Code-specific — other agents don't understand `@import`).
+- Claude additionally gets `@import ./BRAIN.md`; Codex additionally gets native notes/history guidance with current-page reads after context rollover.
 - **Idempotent** via the markers: absent file → created; existing file without markers → block **appended** (preserve user content); existing marked block → replaced in place (upgrades, never duplicates). Never whole-file overwrite outside the markers.
 
 ### 4. Optionally install a pre-commit hook
@@ -86,19 +86,41 @@ Offer to install the local index + link backstop (no CI required). Only if the p
 
 The hook runs `reindex → lint-links` on every commit and folds any index changes back in. (There is deliberately no validator — correctness is guaranteed by the CLI being the only way to write.)
 
-### 5. Optionally install a Claude Code SessionStart hook
+### 5. Optionally install a SessionStart hook
 
-Offer a project-local SessionStart hook so Claude Code sessions start with a compact `brain list-pages` snapshot. **Never** write `~/.claude/settings.json` — a global hook would fire in projects that have no brain. Do **not** hand-edit `.claude/settings.json` for this; the CLI merge is the installer.
+Offer a project-local snapshot of `brain list-pages` for Claude Code or Codex. When
+requested, use the CLI merge; never hand-edit hook configuration or install global hooks.
 
-Only if the user agrees:
-
+```sh
+node <brain-page-bundle>/bin/brain.mjs install-hooks                    # Claude Code default
+node <brain-page-bundle>/bin/brain.mjs install-hooks --agent codex     # Codex opt-in
 ```
-node <brain-page-bundle>/bin/brain.mjs install-hooks
-```
 
-Reverse with `… uninstall-hooks`. Both are **idempotent**: install copies `hooks/session-start` → `.claude/hooks/brain-session-start` and merges a `SessionStart` command into `.claude/settings.json` without clobbering other settings or duplicating the command; uninstall removes only that command and the copied script.
+Reverse with `uninstall-hooks` and the same agent flag. Both operations are
+idempotent and preserve unrelated entries. Claude uses `.claude/settings.json`;
+Codex uses `.codex/hooks.json`. Each gets `.claude/hooks/brain-session-start` or
+`.codex/hooks/brain-session-start` respectively. Foreign scripts and malformed
+configuration must be repaired by the user before retrying.
 
-The hook itself only shells out to `brain brain-dir` and `brain list-pages`. It no-ops when `populated:` is not `true`, and any failure exits 0 with no output (convenience layer, not a hard dependency). It does not inject page bodies, and it does not install UserPromptSubmit / Stop hooks.
+Codex requires CLI 0.153.4+ as the supported baseline, Node 18+, POSIX `sh`/`awk`,
+project trust, and review/trust through `/hooks`. Hooks must be enabled. Leave
+`config.toml`, global settings, and trust records untouched. Uninstall before
+moving the project and reinstall afterwards because the Codex command is absolute.
+
+The script only invokes `brain brain-dir` and `brain list-pages`, respecting
+`brainRoot`. Missing/unpopulated brains and failures exit 0 silently. Codex gets a
+five-second timeout and an 8 KiB snapshot with whole UTF-8 rows and a full-index
+command when truncated; no page bodies are injected. Supported SessionStart sources
+are startup, resume, clear, and compact. Do not install UserPromptSubmit or Stop hooks.
+
+Astra experimental context management is a separate opt-in via
+`features.context_management.experimental_mode = true`, followed by a new task.
+Check [current client/plan eligibility](https://learn.chatgpt.com/docs/models#experimental-context-management).
+When native notes/history are available, retain brain page IDs and task state in
+notes, recover task evidence from history, and re-read current brain facts through
+the CLI. No hook writes notes or brain data. Experimental rollover delivery and
+desktop behavior require separate validation; use wired instructions and explicit
+CLI reads if the client does not expose a supported restoration event.
 
 ## After setup
 

@@ -28,11 +28,11 @@
 //   wire            [--agent <claude-code|codex|opencode|cursor|pi|all>]
 //                   (default: wire CLAUDE.md + AGENTS.md)
 //   init            [--no-wire] [--agent …]   scaffold BRAIN.md + brain/ + default wire
-//   install-hooks   (opt-in Claude Code SessionStart hook, project-local .claude/settings.json)
+//   install-hooks   [--agent <claude-code|codex>] (opt-in, project-local)
 //   uninstall-hooks (remove that SessionStart hook)
 //   reindex | lint-links
 
-import { existsSync, readFileSync, readdirSync, mkdirSync, cpSync, chmodSync, rmSync, rmdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, mkdirSync, cpSync, chmodSync, rmSync, rmdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -393,9 +393,6 @@ const DEFAULT_WIRE_AGENTS = ["claude-code", "codex"];
 const WIRE_BEGIN = "<!-- BEGIN brain.md -->";
 const WIRE_END = "<!-- END brain.md -->";
 
-// The unified, neutral, self-contained brain block. Every agent gets the same
-// body; the ONLY difference is that claude-code additionally carries an
-// `@import ./BRAIN.md` line (Claude Code-specific — AGENTS.md agents do not).
 function brainWireBlock(agent) {
   const lines = [
     "## Project Brain",
@@ -414,6 +411,10 @@ function brainWireBlock(agent) {
     "",
     "The brain skills (`brain-setup`, `brain-page`, `brain-ingest`, `brain-bootstrap`) are installed in your global skills directory. To scaffold a new project, run `node <brain-page-skill-dir>/bin/brain.mjs init` from its root.",
   ];
+  if (agent === "codex") lines.push(
+    "",
+    "If native notes/history are available, keep relevant brain page IDs and unresolved task state in notes; search history for earlier task evidence. After context rollover, re-read relevant pages through the CLI for current project facts. Do not copy task history into the brain.",
+  );
   if (agent === "claude-code") lines.splice(3, 0, "@import ./BRAIN.md");
   return [WIRE_BEGIN, ...lines, WIRE_END].join("\n");
 }
@@ -595,161 +596,121 @@ function cmdInit(rest) {
     "brain: init done. Seed real knowledge next (brain-bootstrap skill), then maintain the brain while coding.",
   );
   console.log(
-    "brain: optional: brain install-hooks — Claude Code SessionStart snapshot (project-local .claude/settings.json).",
+    "brain: optional: brain install-hooks — SessionStart snapshot (project-local; add --agent codex for Codex).",
   );
 }
 
-// ---- Claude Code SessionStart hook (opt-in, project-local only) -------------
-//
-// Slice 1 of the lifecycle-hook layer: inject a compact `brain list-pages`
-// snapshot at session start. Never writes ~/.claude/settings.json. The hook
-// script only shells out to this CLI (brain-dir / list-pages); install just
-// copies the script and merges a SessionStart command into .claude/settings.json.
+// ---- SessionStart hooks (opt-in, project-local only) -------------------------
 
 const SESSION_HOOK_FILE = "brain-session-start";
 const SESSION_HOOK_COMMAND = "${CLAUDE_PROJECT_DIR}/.claude/hooks/" + SESSION_HOOK_FILE;
 const SESSION_HOOK_SRC = join(SKILLS_ROOT, "brain-setup", "hooks", "session-start");
+const SESSION_HOOK_MARKER = "# brain.md SessionStart hook —";
 
-function sessionHookDest() {
-  return join(ROOT, ".claude", "hooks", SESSION_HOOK_FILE);
-}
-
-function claudeSettingsPath() {
-  return join(ROOT, ".claude", "settings.json");
-}
-
-function isOurSessionHookCommand(command) {
-  if (typeof command !== "string") return false;
-  return command.includes(`.claude/hooks/${SESSION_HOOK_FILE}`) || /(^|[\\/])brain-session-start$/.test(command);
-}
-
-function ourSessionStartGroup() {
-  return { hooks: [{ type: "command", command: SESSION_HOOK_COMMAND }] };
-}
-
-function sessionStartHasOurHook(groups) {
-  if (!Array.isArray(groups)) return false;
-  for (const group of groups) {
-    const hooks = group && Array.isArray(group.hooks) ? group.hooks : [];
-    for (const h of hooks) {
-      if (h && isOurSessionHookCommand(h.command)) return true;
-    }
+function hookTarget(rest) {
+  let agent = "claude-code";
+  if (rest.length === 2 && rest[0] === "--agent") agent = rest[1];
+  else if (rest.length === 1 && rest[0].startsWith("--agent=")) agent = rest[0].slice(8);
+  else if (rest.length) fail("expected [--agent <claude-code|codex>]");
+  if (agent !== "claude-code" && agent !== "codex") fail(`unsupported hook agent "${agent}"; use claude-code or codex`);
+  const codex = agent === "codex";
+  const dir = join(ROOT, codex ? ".codex" : ".claude");
+  const dest = join(dir, "hooks", SESSION_HOOK_FILE);
+  const settings = join(dir, codex ? "hooks.json" : "settings.json");
+  // Refuse symlinks so project-local installation cannot mutate global settings.
+  for (const path of [dir, dirname(dest), settings, dest]) {
+    if (lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) fail(`refusing hook symlink: ${path}`);
   }
-  return false;
+  const command = codex ? `sh '${dest.replaceAll("'", "'\\''")}' codex` : SESSION_HOOK_COMMAND;
+  return { codex, dest, settings, command, label: codex ? "Codex" : "Claude Code" };
 }
 
-function removeOurSessionHook(groups) {
-  return groups
-    .map((group) => {
-      if (!group || typeof group !== "object" || !Array.isArray(group.hooks)) return group;
-      const hooks = group.hooks.filter((h) => !(h && isOurSessionHookCommand(h.command)));
-      if (hooks.length === 0) return null;
-      if (hooks.length === group.hooks.length) return group;
-      return { ...group, hooks };
-    })
-    .filter(Boolean);
+function isOurSessionHook(hook, target) {
+  return hook?.type === "command" && hook.command === target.command;
 }
 
-function readClaudeSettings(path) {
-  if (!existsSync(path)) return { missing: true, value: {} };
+function sessionStartHasOurHook(groups, target) {
+  return groups.some((group) => group.hooks.some((hook) => isOurSessionHook(hook, target)));
+}
+
+function removeOurSessionHook(groups, target) {
+  return groups.flatMap((group) => {
+    const hooks = group.hooks.filter((hook) => !isOurSessionHook(hook, target));
+    if (hooks.length === group.hooks.length) return [group];
+    return hooks.length ? [{ ...group, hooks }] : [];
+  });
+}
+
+function readHookSettings(path) {
+  if (!existsSync(path)) return {};
   const raw = readFileSync(path, "utf8");
-  if (!raw.trim()) return { missing: false, value: {} };
+  if (!raw.trim()) return {};
   let value;
   try {
     value = JSON.parse(raw);
   } catch {
-    fail(".claude/settings.json is not valid JSON — repair it and re-run");
+    fail(`${path} is not valid JSON — repair it and re-run`);
   }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    fail(".claude/settings.json must be a JSON object");
+  const object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  if (!object(value)) fail(`${path} must be a JSON object`);
+  if (value.hooks !== undefined && !object(value.hooks)) fail(`${path} hooks must be an object`);
+  const groups = value.hooks?.SessionStart;
+  if (groups !== undefined && (!Array.isArray(groups) || groups.some((g) =>
+    !object(g) || !Array.isArray(g.hooks) || g.hooks.some((h) => !object(h))))) {
+    fail(`${path} hooks.SessionStart must be an array of groups with hook objects`);
   }
-  return { missing: false, value };
+  return value;
 }
 
-function writeClaudeSettings(path, value) {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
+function checkOwnedScript(dest) {
+  if (!existsSync(dest)) return false;
+  if (!lstatSync(dest).isFile() || !readFileSync(dest, "utf8").startsWith(`#!/bin/sh\n${SESSION_HOOK_MARKER}`)) {
+    fail(`refusing to overwrite or remove unrelated hook script: ${dest}`);
+  }
+  return true;
 }
 
-function pruneEmptyClaudeHooksDir() {
-  const hooksDir = join(ROOT, ".claude", "hooks");
-  if (!existsSync(hooksDir)) return;
-  try {
-    if (readdirSync(hooksDir).length === 0) rmdirSync(hooksDir);
-  } catch {
-    // leave the dir if it isn't empty or isn't ours to remove
+function cmdInstallHooks(rest) {
+  const target = hookTarget(rest);
+  const value = readHookSettings(target.settings);
+  checkOwnedScript(target.dest);
+  if (!existsSync(SESSION_HOOK_SRC)) fail(`install-hooks cannot find ${SESSION_HOOK_SRC} — is brain-setup installed next to brain-page?`);
+  const groups = value.hooks?.SessionStart || [];
+  if (!sessionStartHasOurHook(groups, target)) {
+    groups.push(target.codex
+      ? { matcher: "^(startup|resume|clear|compact)$", hooks: [{ type: "command", command: target.command, timeout: 5 }] }
+      : { hooks: [{ type: "command", command: target.command }] });
   }
+  value.hooks = { ...value.hooks, SessionStart: groups };
+  mkdirSync(dirname(target.dest), { recursive: true });
+  writeFileAtomic(target.dest, readFileSync(SESSION_HOOK_SRC, "utf8"));
+  chmodSync(target.dest, 0o755);
+  writeFileAtomic(target.settings, `${JSON.stringify(value, null, 2)}\n`);
+  console.log(`brain: installed ${target.label} SessionStart hook in ${target.settings} (project-local)`);
+  if (target.codex) console.log("brain: use Codex /hooks to review and trust this hook; project trust and enabled hooks are required.");
 }
 
-function cmdInstallHooks() {
-  if (!existsSync(SESSION_HOOK_SRC)) {
-    fail(
-      `install-hooks cannot find ${SESSION_HOOK_SRC} — is the brain-setup skill installed next to brain-page?`,
-    );
+function cmdUninstallHooks(rest) {
+  const target = hookTarget(rest);
+  const value = readHookSettings(target.settings);
+  const scriptExists = checkOwnedScript(target.dest);
+  const groups = value.hooks?.SessionStart || [];
+  const changed = sessionStartHasOurHook(groups, target);
+  if (changed) {
+    const next = removeOurSessionHook(groups, target);
+    if (next.length) value.hooks.SessionStart = next;
+    else delete value.hooks.SessionStart;
+    if (!Object.keys(value.hooks).length) delete value.hooks;
+    if (!Object.keys(value).length) rmSync(target.settings);
+    else writeFileAtomic(target.settings, `${JSON.stringify(value, null, 2)}\n`);
   }
-
-  const settingsFile = claudeSettingsPath();
-  const { value } = readClaudeSettings(settingsFile);
-  if (value.hooks !== undefined && (value.hooks === null || typeof value.hooks !== "object" || Array.isArray(value.hooks))) {
-    fail(".claude/settings.json hooks must be an object");
+  if (scriptExists) {
+    rmSync(target.dest);
+    if (!readdirSync(dirname(target.dest)).length) rmdirSync(dirname(target.dest));
   }
-  const hooks = value.hooks && typeof value.hooks === "object" ? { ...value.hooks } : {};
-  if (hooks.SessionStart !== undefined && !Array.isArray(hooks.SessionStart)) {
-    fail(".claude/settings.json hooks.SessionStart must be an array");
-  }
-  const groups = Array.isArray(hooks.SessionStart) ? [...hooks.SessionStart] : [];
-  if (!sessionStartHasOurHook(groups)) groups.push(ourSessionStartGroup());
-  hooks.SessionStart = groups;
-  value.hooks = hooks;
-
-  const dest = sessionHookDest();
-  mkdirSync(dirname(dest), { recursive: true });
-  cpSync(SESSION_HOOK_SRC, dest);
-  chmodSync(dest, 0o755);
-  writeClaudeSettings(settingsFile, value);
-  console.log("brain: installed Claude Code SessionStart hook in .claude/settings.json (project-local)");
-}
-
-function cmdUninstallHooks() {
-  const dest = sessionHookDest();
-  const settingsFile = claudeSettingsPath();
-  const { missing, value } = readClaudeSettings(settingsFile);
-  let changed = false;
-
-  if (!missing) {
-    if (value.hooks !== undefined && (value.hooks === null || typeof value.hooks !== "object" || Array.isArray(value.hooks))) {
-      fail(".claude/settings.json hooks must be an object");
-    }
-    if (value.hooks && value.hooks.SessionStart !== undefined && !Array.isArray(value.hooks.SessionStart)) {
-      fail(".claude/settings.json hooks.SessionStart must be an array");
-    }
-    if (value.hooks && Array.isArray(value.hooks.SessionStart) && sessionStartHasOurHook(value.hooks.SessionStart)) {
-      const nextGroups = removeOurSessionHook(value.hooks.SessionStart);
-      if (nextGroups.length === 0) delete value.hooks.SessionStart;
-      else value.hooks.SessionStart = nextGroups;
-      changed = true;
-      if (Object.keys(value.hooks).length === 0) {
-        delete value.hooks;
-      }
-    }
-    if (changed) {
-      if (Object.keys(value).length === 0) rmSync(settingsFile, { force: true });
-      else writeClaudeSettings(settingsFile, value);
-    }
-  }
-
-  let removedScript = false;
-  if (existsSync(dest)) {
-    rmSync(dest, { force: true });
-    removedScript = true;
-  }
-  pruneEmptyClaudeHooksDir();
-
-  if (!changed && !removedScript) {
-    console.log("brain: Claude Code SessionStart hook not installed (nothing to do)");
-    return;
-  }
-  console.log("brain: removed Claude Code SessionStart hook from .claude/settings.json");
+  console.log(changed || scriptExists
+    ? `brain: removed ${target.label} SessionStart hook from ${target.settings}`
+    : `brain: ${target.label} SessionStart hook not installed (nothing to do)`);
 }
 
 // ---- dispatch ---------------------------------------------------------------
@@ -778,8 +739,8 @@ Writes (correct-by-construction):
 
 Project setup:
   init            [--no-wire] [--agent …]   ensure BRAIN.md, scaffold empty brain, default-wire CLAUDE.md + AGENTS.md
-  install-hooks   opt-in Claude Code SessionStart hook (project-local .claude/settings.json only)
-  uninstall-hooks remove that SessionStart hook (leaves other .claude settings intact)
+  install-hooks   [--agent <claude-code|codex>] opt-in project-local SessionStart hook (default: claude-code)
+  uninstall-hooks [--agent <claude-code|codex>] remove only that agent's brain hook
 
 Wiring (deterministic agent-config):
   wire            [--agent <claude-code|codex|opencode|cursor|pi|all>]
@@ -813,8 +774,8 @@ async function main() {
     case "update-root": return cmdUpdateRoot(positional, flags);
     case "init": return cmdInit(rest);
     case "wire": return cmdWire(rest);
-    case "install-hooks": return cmdInstallHooks();
-    case "uninstall-hooks": return cmdUninstallHooks();
+    case "install-hooks": return cmdInstallHooks(rest);
+    case "uninstall-hooks": return cmdUninstallHooks(rest);
     case "reindex": return cmdReindex();
     case "lint-links": return cmdLintLinks();
     case "setup":

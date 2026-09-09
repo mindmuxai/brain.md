@@ -26,7 +26,7 @@ The test for what is worth keeping: **will this still matter in six months, and 
 
 And the access rule is constant: **read = the `brain` read subcommands, write = the `brain` write subcommands, never hand-edit a brain file.**
 
-> Note: Claude Code and Codex have no per-turn system prompt the way a memory-native runtime does, so "use the brain proactively" is enforced by always-present instruction files like this one and the wired agent-config block — a prompt-level *soft* constraint. An optional Claude Code `SessionStart` hook (project-local `.claude/settings.json` only, via `brain install-hooks`) injects a compact `brain list-pages` snapshot at session start. It shells out to this CLI, no-ops when the brain is not populated, and exits 0 on failure. Pre-turn injection and Stop-suggested writes are not part of this layer yet.
+> Note: Claude Code and Codex have no per-turn system prompt the way a memory-native runtime does, so "use the brain proactively" is enforced by always-present instruction files like this one and the wired agent-config block — a prompt-level *soft* constraint. An optional `SessionStart` hook (Claude Code: `.claude/settings.json` via `brain install-hooks`; Codex: `.codex/hooks.json` via `brain install-hooks --agent codex`) injects a compact `brain list-pages` snapshot at session start. It shells out to this CLI, no-ops when the brain is not populated, and exits 0 on failure. Pre-turn injection and Stop-suggested writes are not part of this layer yet. Codex snapshots are capped at 8 KiB; use `list-pages` for the full index and `read-page <id>` for current details. When native notes/history are available, keep relevant page IDs and task state there, then re-read current project facts after context rollover. Hooks never write native notes or brain data. Astra experimental-rollover delivery is not runtime-verified; wired instructions and explicit CLI reads remain the fallback.
 
 ---
 
@@ -123,7 +123,7 @@ Use `[[page-id]]` only when the identifier truly is the id of a brain page (it a
 
 Skills are reusable operating manuals for working with `brain/`. They are not knowledge deliverables; they are "how to do it" rulebooks for the AI, installed into each agent's global skills directory (so Claude Code, Codex, and others share them). This standard ships four:
 
-- **brain-setup** — ensure `BRAIN.md` is in the project root; resolve the brain data location with `brain brain-dir` (brainRoot-aware) and scaffold the `brain/` skeleton there only if that location is empty — never a second local `./brain` when `brainRoot` redirects to an external directory. Then **default-wire** `CLAUDE.md` + `AGENTS.md` via `brain wire` (or prefer the one-shot `brain init`), and optionally install a pre-commit hook and a Claude Code SessionStart hook (`brain install-hooks`).
+- **brain-setup** — ensure `BRAIN.md` is in the project root; resolve the brain data location with `brain brain-dir` (brainRoot-aware) and scaffold the `brain/` skeleton there only if that location is empty — never a second local `./brain` when `brainRoot` redirects to an external directory. Then **default-wire** `CLAUDE.md` + `AGENTS.md` via `brain wire` (or prefer the one-shot `brain init`), and optionally install a pre-commit hook and a Claude Code or Codex SessionStart hook (`brain install-hooks [--agent codex]`).
 - **brain-bootstrap** — seed a freshly-scaffolded brain with real project knowledge: on an existing project, read the code / docs / `git log` to draft the six root pages and capture key decisions; on an empty project, interview the user. All writes go through the `brain` CLI. Run it after **brain-setup**.
 - **brain-page** — the operating manual for reading and writing pages + root pages; this is the bundle that carries the `brain` CLI. **Read it before creating or modifying any page.**
 - **brain-ingest** — the process for digesting a conversation / document / research result and writing it down through the `brain` CLI.
@@ -160,7 +160,7 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 | `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. `lint-links` checks Page `compiled_truth` and root page bodies as current knowledge; Page timeline entries are append-only provenance and are not linted. |
 | scaffold a project | `brain init` — ensures `BRAIN.md`, scaffolds empty brain data (brainRoot-aware), default-wires `CLAUDE.md` + `AGENTS.md`. |
 | wire an agent's config | `brain wire` (default) or `brain wire --agent <claude-code\|codex\|opencode\|cursor\|pi\|all>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |
-| optional Claude Code SessionStart hook | `brain install-hooks` / `brain uninstall-hooks` — project-local `.claude/settings.json` only (never `~/.claude/settings.json`). Injects a compact `brain list-pages` snapshot at session start; the hook only shells out to this CLI. |
+| optional SessionStart hook | `brain install-hooks` / `brain uninstall-hooks` (Claude Code default); add `--agent codex` for project-local `.codex/hooks.json`. Only owned entries are changed. Codex: CLI 0.153.4+, Node 18+, POSIX shell, project and `/hooks` trust; 8 KiB listing at startup/resume/clear/compact. Uninstall before moving and reinstall afterwards. |
 
 ---
 
@@ -178,7 +178,7 @@ brain wire --agent claude-code,codex,opencode,cursor,pi       # explicit subset 
 - Default (no `--agent`, or `--agent all`) wires **both** `./CLAUDE.md` and `./AGENTS.md`.
 - `claude-code → ./CLAUDE.md`, `codex / opencode / cursor / pi → ./AGENTS.md` (written in the project root).
 - It writes one **unified, neutral, self-contained brain block**, wrapped in `<!-- BEGIN brain.md -->` … `<!-- END brain.md -->`: it frames `brain/` as the project's memory layer, tells the agent to read `./BRAIN.md` (this contract), states the **session-companion** rules (load brain at task start; capture decisions/constraints when they settle during coding; skip pure implementation; reverse/update when overturning; all via the `brain` CLI; never hand-edit), and notes the four brain skills are installed globally.
-- Both files get the **same** block body. The only difference: `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — the other agents (which read `AGENTS.md`) do not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
+- Both files share the core brain contract. Codex also gets native notes/history guidance. Additionally, `CLAUDE.md` also carries an `@import ./BRAIN.md` line. **`@import` is Claude Code-specific** — the other agents (which read `AGENTS.md`) do not understand it, so `AGENTS.md` relies on the plain "read `./BRAIN.md`" instruction instead.
 - **Idempotent** via the markers: no file → created; file without markers → block **appended** (user content preserved); existing marked block → replaced in place (re-running upgrades, never duplicates). Never whole-file overwrite of user content outside the markers.
 
 ---

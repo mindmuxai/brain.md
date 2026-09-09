@@ -1,16 +1,14 @@
 #!/bin/sh
 # brain.md SessionStart hook — inject a compact `brain list-pages` snapshot
-# into Claude Code context so a session starts brain-aware.
-#
-# Convenience layer, not a hard dependency: any failure exits 0 with no output.
-# NEVER reads or writes brain markdown files; only shells out to the `brain` CLI.
-#
-# Locates the brain-page skill's CLI from a few likely places.
-# Override by exporting BRAIN_CLI=/abs/path/to/brain-page/bin/brain.mjs.
+
+# Hook failures must not block sessions.
 set -e
 trap 'exit 0' EXIT
+exec 2>/dev/null
 
-if [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
+if [ "${1:-}" = codex ]; then
+  cd "$(dirname "$0")/../.."
+elif [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
   cd "$CLAUDE_PROJECT_DIR"
 fi
 
@@ -20,6 +18,9 @@ find_cli() {
   fi
   for c in \
     "skills/brain-page/bin/brain.mjs" \
+    ".codex/skills/brain-page/bin/brain.mjs" \
+    ".agents/skills/brain-page/bin/brain.mjs" \
+    ".claude/skills/brain-page/bin/brain.mjs" \
     "$HOME/.claude/skills/brain-page/bin/brain.mjs" \
     "$HOME/.codex/skills/brain-page/bin/brain.mjs" \
     "$HOME/.config/opencode/skills/brain-page/bin/brain.mjs" \
@@ -49,4 +50,20 @@ printf '%s\n' "$dir_out" | grep -q '^populated: true$' || exit 0
 pages=$(invoke list-pages 2>/dev/null)
 [ -n "$pages" ] || exit 0
 
-printf '%s\n\n%s\n' "Project brain pages (brain list-pages):" "$pages"
+if [ "${1:-}" = codex ]; then
+  # 8 KiB byte budget, not tokens; Codex's own context limit remains the backstop.
+  printf '%s\n' "$pages" | LC_ALL=C awk '
+    BEGIN {
+      output = "Project brain pages (brain list-pages):\nRead current details with brain read-page <id>.\n\n"
+      notice = "[Index truncated; run brain list-pages for the full index.]\n"
+      limit = 8192 - length(notice)
+    }
+    {
+      if (length(output) + length($0) + 1 > limit) truncated = 1
+      if (!truncated) output = output $0 "\n"
+    }
+    END { printf "%s%s", output, truncated ? notice : "" }
+  '
+else
+  printf '%s\n\n%s\n' "Project brain pages (brain list-pages):" "$pages"
+fi

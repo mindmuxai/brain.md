@@ -83,7 +83,7 @@ This ensures `BRAIN.md`, scaffolds empty brain data (brainRoot-aware), and **def
 `CLAUDE.md` + `AGENTS.md` (creates them if missing; if they already exist, only updates the
 marked brain block — never whole-file overwrite). Optionally use the **brain-setup** skill for
 the same flow plus a pre-commit hook, or `brain install-hooks` for a project-local Claude Code
-SessionStart snapshot.
+SessionStart snapshot (`--agent codex` for Codex).
 
 **3. Seed real knowledge** — run the **brain-bootstrap** skill. On an existing project it reads
 the code, docs, and `git log` to draft the root pages and capture key decisions; on a near-empty
@@ -127,6 +127,8 @@ brain init                                   # BRAIN.md + skeleton + default wir
 brain wire                                   # same default wire (no --agent needed)
 brain install-hooks                          # opt-in Claude Code SessionStart snapshot (project-local)
 brain uninstall-hooks                        # remove that SessionStart hook
+brain install-hooks --agent codex            # opt-in Codex startup/resume/compaction snapshot
+brain uninstall-hooks --agent codex          # remove only the Codex hook
 brain brain-dir                              # where is the brain?
 brain list-pages                             # list pages
 brain read-page my-decision                  # read a page
@@ -140,6 +142,66 @@ brain reindex && brain lint-links
 A page carries a rewritable **compiled_truth** (the current best understanding) plus an
 append-only **timeline** (the chain of evidence). `update-truth` rewrites the truth and appends
 its timeline entry in one atomic write — so the understanding can never change without a trace.
+
+## Codex lifecycle hooks
+
+From the project root, run `brain install-hooks --agent codex`. It installs
+`.codex/hooks/brain-session-start` and merges one `SessionStart` command into
+`.codex/hooks.json`. Run `brain uninstall-hooks --agent codex` to remove it.
+No flag still means Claude Code; `--agent claude-code` is also accepted.
+
+Use **Codex CLI 0.153.4 or newer** as the supported baseline for this integration
+([release notes](https://learn.chatgpt.com/docs/changelog)). Older releases have not
+been validated. Node 18+ and a POSIX shell with `awk` must be available to the hook
+(macOS/Linux; native Windows shells are not supported). The hook locates the CLI
+in installed skill directories or on `PATH`; `BRAIN_CLI` can specify its absolute
+`.mjs` path.
+
+Trust the project and use Codex `/hooks` to review and trust the installed command.
+Hooks must be enabled (`features.hooks`, enabled by default in this release).
+The installer leaves global configuration, `config.toml`, and trust settings alone;
+malformed settings or a foreign script at the destination produce an error without
+overwriting them. If inline TOML hooks already exist, Codex loads both sources.
+The command contains an absolute project path: **uninstall before moving a project,
+then reinstall at its new location**. Do the same for a separate clone/worktree;
+do not share the generated absolute command between machines.
+
+The [documented lifecycle](https://learn.chatgpt.com/docs/hooks) covers startup,
+resume, clear, and post-compaction through `SessionStart`. The hook resolves the
+brain via `brain brain-dir`, including relative or absolute `brainRoot` redirects,
+and emits only `brain list-pages` metadata. It exits successfully without context
+when the brain is missing/unpopulated or the CLI fails; Codex limits execution to
+five seconds. Page bodies are read on demand with `brain read-page <id>`.
+
+### Astra experimental context
+
+Codex snapshots are limited to **8 KiB of UTF-8**, preserving complete rows and
+leaving Codex's own context limit enabled. Truncated snapshots tell the agent to
+run `brain list-pages` for the full index. This keeps the same bounded behavior
+with or without Astra's experimental context management. Snapshots refresh at each
+supported boundary; an unchanged index is not suppressed across context windows.
+
+For eligible clients, opt in yourself in `config.toml`, then start a new task:
+
+```toml
+[features.context_management]
+experimental_mode = true
+```
+
+See [current eligibility and behavior](https://learn.chatgpt.com/docs/models#experimental-context-management):
+the launch guide lists ChatGPT Plus/Pro, excluding Business, Enterprise, and API-key
+sign-in; the [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+also lists Pro Lite. The installer does not enable this experiment or change model
+or compaction settings.
+
+When native notes/history are available, retain relevant brain page IDs and
+unresolved task state there, search earlier task history for evidence, and re-read
+brain pages for current facts after a rollover. Run `brain wire --agent codex` to
+refresh this guidance in `AGENTS.md`. Hooks never write native notes or brain pages.
+Automatic experimental-rollover delivery and the desktop app require separate
+runtime validation; do not assume all experimental rollovers emit ordinary
+compaction events. The wired instructions and explicit CLI reads remain available.
+
 
 ## How it works
 
@@ -158,7 +220,7 @@ The skills that drive it all:
 
 | skill | what it does |
 |---|---|
-| **brain-setup** | same scaffold/wire as `brain init`, plus optional pre-commit and Claude Code SessionStart hooks — prefer `brain init` for day-to-day |
+| **brain-setup** | same scaffold/wire as `brain init`, plus optional pre-commit and Claude Code/Codex SessionStart hooks — prefer `brain init` for day-to-day |
 | **brain-bootstrap** | seed the brain from code / docs / `git log` — or interview you on a greenfield project |
 | **brain-page** | the operating manual for reading and writing pages + root pages (carries the `brain` CLI) |
 | **brain-ingest** | digest a conversation, document, or research result into the brain |
