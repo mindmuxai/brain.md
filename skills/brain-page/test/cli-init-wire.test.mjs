@@ -55,6 +55,9 @@ function assertCompanionBlock(text) {
   assert.match(text, /Pure implementation/i);
   assert.match(text, /overturning/i);
   assert.match(text, /never hand-edit/i);
+  assert.match(text, /If a brain MCP server is connected and authenticated, prefer it/);
+  assert.match(text, /otherwise use the `brain` CLI/);
+  assert.doesNotMatch(text, /All reads and writes go through the `brain` CLI — never hand-edit brain files/);
   assert.equal(countMarkers(text, WIRE_BEGIN), 1);
   assert.equal(countMarkers(text, WIRE_END), 1);
 }
@@ -98,6 +101,35 @@ test("wire appends block without overwriting existing user content", (t) => {
   assert.match(claude, /Use Biome/);
   assertCompanionBlock(agents);
   assertCompanionBlock(claude);
+});
+
+test("wire upgrades a pre-MCP companion block in place without duplicating", (t) => {
+  const project = makeEmptyProject(t);
+  const oldBlock = [
+    WIRE_BEGIN,
+    "## Project Brain",
+    "",
+    "This project keeps a **Project Brain**: a persistent memory layer of its durable decisions, requirements, and constraints. Read `./BRAIN.md` for the full read/write contract.",
+    "",
+    "Maintain the brain as part of normal coding work — not as a separate task. While discussing or implementing features:",
+    "- **Start of a task:** load relevant context with the `brain` CLI (`list-pages`, `read-page`, `read-root`). Prefer a narrow read over scanning everything.",
+    "- All reads and writes go through the `brain` CLI — never hand-edit brain files.",
+    "",
+    "The brain skills (`brain-setup`, `brain-page`, `brain-ingest`, `brain-bootstrap`) are installed in your global skills directory. Prefer `brain init` to scaffold a new project.",
+    WIRE_END,
+  ].join("\n");
+  writeFileSync(join(project, "AGENTS.md"), `# Team rules\n\nKeep PRs small.\n\n${oldBlock}\n`);
+
+  const r = runBrain(project, ["wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  assert.match(r.stdout, /updated the brain block in AGENTS\.md/);
+
+  const agents = readFileSync(join(project, "AGENTS.md"), "utf8");
+  assert.match(agents, /Keep PRs small/);
+  assertCompanionBlock(agents);
+  assert.doesNotMatch(agents, /Prefer `brain init`/);
+  assert.equal(countMarkers(agents, WIRE_BEGIN), 1);
+  assert.equal(countMarkers(agents, WIRE_END), 1);
 });
 
 test("wire is idempotent: second run replaces the marked block only once", (t) => {

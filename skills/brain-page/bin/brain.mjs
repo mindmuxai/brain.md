@@ -407,7 +407,7 @@ function brainWireBlock(agent) {
     "- **Pure implementation with no new decision:** do not write to the brain.",
     "- **When overturning a prior conclusion:** update the page (`update-truth` and/or `append-timeline` with `kind: reversal`, or `archive-page`).",
     "- Only store what will still matter in six months and is hard to reconstruct from the code alone.",
-    "- All reads and writes go through the `brain` CLI — never hand-edit brain files.",
+    "- Never hand-edit brain files. If a brain MCP server is connected and authenticated, prefer it; otherwise use the `brain` CLI.",
     "",
     "The brain skills (`brain-setup`, `brain-page`, `brain-ingest`, `brain-bootstrap`) are installed in your global skills directory. To scaffold a new project, run `node <brain-page-skill-dir>/bin/brain.mjs init` from its root.",
   ];
