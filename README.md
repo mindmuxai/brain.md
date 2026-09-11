@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-171717?style=flat-square" alt="License: Apache-2.0">
   <img src="https://img.shields.io/badge/CLI-zero%20dependencies-171717?style=flat-square" alt="Zero-dependency CLI">
   <img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor%20%C2%B7%20Pi-171717?style=flat-square" alt="Agents: Claude Code, Codex, Cursor, Pi">
-  <img src="https://img.shields.io/badge/version-0.2.0-171717?style=flat-square" alt="Version 0.2.0">
+  <img src="https://img.shields.io/badge/version-0.3.0-171717?style=flat-square" alt="Version 0.3.0">
 </p>
 
 <p align="center">
