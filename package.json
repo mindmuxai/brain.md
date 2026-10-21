@@ -1,6 +1,6 @@
 {
   "name": "@mindmux/brain-md",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Open Project Brain Standard — install-first, agent-agnostic toolkit. Capture a project's durable knowledge as plain Markdown, read and written through one zero-dependency CLI.",
   "type": "module",
   "bin": {
