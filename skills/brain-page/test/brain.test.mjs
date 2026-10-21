@@ -23,6 +23,12 @@ function makeProject(t) {
   return project;
 }
 
+test("organization is a supported Page category", async () => {
+  const brain = await loadBrain();
+  assert.ok(brain.PAGE_CATEGORIES.includes("organization"));
+  assert.equal(brain.PAGE_CATEGORIES.includes("unknown"), false);
+});
+
 test("preserves nested headings inside compiled_truth and appends timeline at EOF", async (t) => {
   const project = makeProject(t);
 

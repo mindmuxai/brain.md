@@ -22,7 +22,7 @@ Split the input into individual **atomic knowledge points**. A knowledge point =
 ### 2. Place each knowledge point (see "Choosing where to write" in `BRAIN.md`)
 
 - Changes the project's overall positioning / architecture / stack / roadmap → **rewrite the corresponding root page** with `brain update-root <slug>` (`background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`). The stdin body must start with an authored `# Title` and include real content after that heading. A missing slot is created by that write.
-- About a specific entity (a decision / concept / person / reference / sub-project) → **create or update a page**.
+- About a specific entity (a decision / concept / person / organization / reference / sub-project) → **create or update a page**.
 - It's common for one knowledge point to touch both — write to both sides.
 
 ### 3. Decide between "create" and "update existing"

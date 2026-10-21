@@ -54,19 +54,20 @@ brain read-root <slug> # print a root page brain/<slug>.md
 - **When overturning a prior conclusion:** `update-truth` and/or `append-timeline --kind reversal` (or `archive-page`).
 - Never hand-edit brain files.
 
-## The five page categories
+## The six page categories
 
 Each page's `category` must be one of:
 
 | category | boundary (what to write) | typical compiled_truth structure |
 |---|---|---|
-| `project` | The state and intent of a self-contained piece of work / sub-project / module — the part that can't be read straight from the code | goal, scope, current status, key constraints |
-| `concept` | A concept / term / mechanism that needs a shared, lasting understanding | definition, why it's this way, boundaries and counter-examples |
+| `project` | A concrete piece of work with a goal, scope, and an end — ask: “will this be done?”; dated progress belongs in the timeline | goal, scope, current status, key constraints |
+| `concept` | A concept, term, mechanism, or unfinished idea/question; also the deliberate home for durable knowledge that does not fit another type | definition or proposition, why it matters, boundaries and counter-examples |
 | `decision` | An established judgment and its reasoning (the most common) | what was decided, alternatives, rationale, blast radius |
 | `person` | A relevant person / role, their preferences and responsibilities | who they are, what they care about, collaboration conventions |
+| `organization` | A company, school, foundation, government body, standards organization, or internal team relevant to the work | what it is, relationship to this work, people/decisions/pages linked to it |
 | `reference` | An external resource / object of analysis worth keeping | what it is, key takeaways, links, implications for this project |
 
-When in doubt, most knowledge lands in `decision` or `concept`.
+Use a `company` tag to narrow an organization that is specifically a company; it is not a required field. When in doubt, most knowledge lands in `decision` or `concept`.
 
 ## Page id conventions
 

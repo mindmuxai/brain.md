@@ -67,8 +67,8 @@ export const ROOT_PAGE_META = {
 /** The six fixed root page slugs (ordered). */
 export const ROOT_PAGE_SLUGS = Object.keys(ROOT_PAGE_META);
 
-/** The five page categories. */
-export const PAGE_CATEGORIES = ["project", "concept", "decision", "person", "reference"];
+/** The six page categories. */
+export const PAGE_CATEGORIES = ["project", "concept", "decision", "person", "organization", "reference"];
 
 /** Allowed page lifecycle statuses. */
 export const PAGE_STATUSES = ["active", "draft", "archived"];

@@ -75,7 +75,7 @@ Rules:
 
 ### 2. Pages (`brain/pages/*.md`) — incremental knowledge
 
-Each page is a durable unit of project knowledge, of exactly one of five categories: `project` / `concept` / `decision` / `person` / `reference`. There is no limit on the number of pages; create them as needed. For the full category boundaries see the **brain-page** skill.
+Each page is a durable unit of project knowledge, of exactly one of six categories: `project` / `concept` / `decision` / `person` / `organization` / `reference`. There is no limit on the number of pages; create them as needed. For the full category boundaries see the **brain-page** skill.
 
 Each page = **compiled_truth** (a rewritable "current best understanding") + **timeline** (an append-only chain of evidence).
 
@@ -85,7 +85,7 @@ File structure:
 ---
 id: <kebab-case-id>          # required, must equal the filename (without .md)
 title: <one-line title>      # required
-category: decision           # required, one of the five categories
+category: decision           # required, one of the six categories
 status: active               # required: active / draft / archived
 tags: [a, b]                 # optional, inline array
 created: "2026-06-22T12:00:00"  # required
@@ -135,7 +135,7 @@ Skills are reusable operating manuals for working with `brain/`. They are not kn
 When you need to capture knowledge, ask first:
 
 - **Does this change the project's overall positioning / architecture / stack / roadmap?** → Rewrite the corresponding root page (`brain update-root <slug>`).
-- **Is this about a specific entity (a decision, concept, person, reference)?** → Create or update a page; for the taxonomy see the **brain-page** skill.
+- **Is this about a specific entity (a decision, concept, person, organization, reference)?** → Create or update a page; for the taxonomy see the **brain-page** skill.
 
 A single discussion often touches both — e.g. "we decided to use Markdown rather than SQLite" is both a decision page and an update to `stack.md`.
 
