@@ -19,8 +19,8 @@
 //   list-pages                      (list pages: id / title / category / status)
 //   read-page <id>                  (print brain/pages/<id>.md)
 //   read-root <slug>                (print a root page brain/<slug>.md)
-//   create-page     --id --category --title [--tags] [--status] [--source]
-//   update-truth    --id            (new compiled_truth read from stdin)
+//   create-page     --id --category --title [--summary] [--tags] [--status] [--source]
+//   update-truth    --id [--summary] [--source]   (new compiled_truth from stdin)
 //   append-timeline --id --kind --summary [--source] [--affects]
 //   archive-page    --id [--reversal-summary]
 //   set-tags        --id --tags
@@ -124,6 +124,31 @@ function hasMeaningfulRootContent(body) {
   });
 }
 
+/**
+ * Timeline summaries are caller-authored prose in the page's working language.
+ * The CLI never invents a sentence. An omitted `--summary` falls back to text
+ * the caller already supplied: the page title on create, or the first usable
+ * line of the new compiled_truth on update. Existing timeline entries are
+ * never rewritten.
+ */
+function optionalSummary(flags) {
+  if (flags.summary === undefined) return undefined;
+  if (flags.summary === true) fail("--summary requires a non-empty value");
+  const text = String(flags.summary).trim();
+  if (!text) fail("--summary requires a non-empty value");
+  return text;
+}
+
+function summaryFromCompiledTruth(text) {
+  for (const raw of String(text).split("\n")) {
+    let line = raw.trim();
+    if (!line || line.startsWith("<!--") || /^`{3,}/.test(line)) continue;
+    line = line.replace(/^#{1,6}\s+/, "").trim();
+    if (line) return line;
+  }
+  return "";
+}
+
 // ---- subcommands ------------------------------------------------------------
 
 function cmdCreatePage(flags) {
@@ -133,6 +158,8 @@ function cmdCreatePage(flags) {
   const title = requireFlag(flags, "title");
   const status = flags.status ? String(flags.status) : "active";
   const source = flags.source ? String(flags.source) : "created via brain create-page";
+  // Title is already in the caller's language. Do not wrap it in English.
+  const summary = optionalSummary(flags) ?? title;
   const tags = flags.tags ? String(flags.tags).split(",").map((s) => s.trim()).filter(Boolean) : [];
 
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) fail(`invalid --id "${id}" (use kebab-case: a-z 0-9 -)`);
@@ -156,7 +183,7 @@ function cmdCreatePage(flags) {
   const timeline = formatTimelineEntry({
     time: stamp,
     kind: "decision",
-    summary: `Created this page: ${title}`,
+    summary,
     source,
     affects: [id],
   });
@@ -185,13 +212,15 @@ async function cmdUpdateTruth(flags) {
   ensureBrainExists();
   const id = requireFlag(flags, "id");
   const source = flags.source ? String(flags.source) : "brain update-truth";
-  const summary = flags.summary
-    ? String(flags.summary)
-    : "Rewrote compiled_truth to the new best understanding";
+  const explicitSummary = optionalSummary(flags);
   if (!existsSync(pagePath(id))) fail(`brain/pages/${id}.md does not exist`);
 
   const newTruth = (await readStdin()).trim();
   if (!newTruth) fail("update-truth reads the new compiled_truth from stdin, but stdin was empty");
+  const summary = explicitSummary ?? summaryFromCompiledTruth(newTruth);
+  if (!summary) {
+    fail("pass --summary; the new compiled_truth has no text line to use as a timeline summary");
+  }
 
   const doc = loadDoc(pagePath(id));
   const stamp = nowStamp();
@@ -425,6 +454,7 @@ function brainWireBlock(agent) {
     "Maintain the brain as part of normal coding work — not as a separate task. While discussing or implementing features:",
     "- **Start of a task:** load relevant context with the `brain` CLI (`list-pages`, `read-page`, `read-root`). Prefer a narrow read over scanning everything.",
     "- **When a decision, requirement, constraint, or durable insight settles** (in chat or while coding): capture it immediately via the `brain` CLI. Do not wait to be asked and do not batch it for later.",
+    "- **Language:** write compiled_truth, root pages, and timeline summaries in the user's working language, and pass `--summary` in that language on `create-page` and `update-truth`.",
     "- **Pure implementation with no new decision:** do not write to the brain.",
     "- **When overturning a prior conclusion:** update the page (`update-truth` and/or `append-timeline` with `kind: reversal`, or `archive-page`).",
     "- Only store what will still matter in six months and is hard to reconstruct from the code alone.",
@@ -753,12 +783,19 @@ Reads (location-independent):
   read-root <slug>  print a root page brain/<slug>.md
 
 Writes (correct-by-construction):
-  create-page     --id <kebab> --category <cat> --title <t> [--tags a,b] [--status active] [--source s]
+  create-page     --id <kebab> --category <cat> --title <t> [--summary s] [--tags a,b] [--status active] [--source s]
   update-truth    --id <kebab> [--summary s] [--source s]      (new compiled_truth read from stdin)
   append-timeline --id <kebab> --kind <k> --summary <s> [--source s] [--affects a,b]
   archive-page    --id <kebab> [--reversal-summary s]
   set-tags        --id <kebab> --tags a,b,c
   update-root     <slug>                                        (stdin body must start with # Title)
+
+Timeline summaries are caller-authored in the user's working language. Pass
+--summary in that language. If omitted, create-page records the page title and
+update-truth records the first usable line of the new compiled_truth (a leading
+Markdown heading marker is removed). The CLI does not generate an English
+sentence and does not rewrite timeline entries already stored. Schema keys,
+section markers, and enum values stay English.
 
 Project setup:
   init            [--no-wire] [--agent …]   ensure BRAIN.md, scaffold empty brain, default-wire CLAUDE.md + AGENTS.md

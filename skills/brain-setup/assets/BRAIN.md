@@ -151,8 +151,8 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 | read a root page | `brain read-root <slug>` — prints the root page. |
 | list pages | `brain list-pages` — id / title / category / status for every page. |
 | locate the brain | `brain brain-dir` — prints the resolved brain directory and its source. |
-| `create_page` | `brain create-page --id <id> --category <cat> --title "<t>" [--tags a,b] [--status] [--source]` — writes the page from the template (frontmatter + compiled_truth + a seed `kind: decision` timeline entry) and reindexes. Read the **brain-page** skill before creating. |
-| `update_compiled_truth` | `brain update-truth --id <id>` with the new compiled_truth on **stdin** — rewrites compiled_truth **and atomically appends a `kind: decision` timeline entry** + bumps `updated`. |
+| `create_page` | `brain create-page --id <id> --category <cat> --title "<t>" [--summary "<s>"] [--tags a,b] [--status] [--source]` — writes the page from the template (frontmatter + compiled_truth + a seed `kind: decision` timeline entry) and reindexes. Pass `--summary` in the user's working language; if omitted, the creation summary is the title. Read the **brain-page** skill before creating. |
+| `update_compiled_truth` | `brain update-truth --id <id> [--summary "<s>"]` with the new compiled_truth on **stdin** — rewrites compiled_truth **and atomically appends a `kind: decision` timeline entry** + bumps `updated`. Pass `--summary` in the user's working language; if omitted, the summary is the first usable line of the new compiled_truth. |
 | `append_timeline` | `brain append-timeline --id <id> --kind <k> --summary "<s>" [--source] [--affects]` — appends at the end of the timeline only (append-only). |
 | `archive_page` | `brain archive-page --id <id> [--reversal-summary "<s>"]` — sets `status: archived`, optionally appends a `kind: reversal` entry, reindexes. |
 | `set_page_tags` | `brain set-tags --id <id> --tags a,b,c` — rewrites the frontmatter tags, reindexes. |
@@ -193,4 +193,10 @@ That is also why the guardrail above is absolute: **never hand-edit a brain file
 
 ## Language
 
-Reply in the **user's working language**, inferred from the user's messages — not from the UI locale, tool names, or the language of this file. Write the body of timelines, compiled_truth, and root pages in the user's working language; keep technical identifiers (ids, slugs, field names, file paths) verbatim.
+Reply in the **user's working language**, inferred from the user's messages — not from the UI locale, tool names, or the language of this file. Write the body of timelines, compiled_truth, and root pages in the user's working language; keep technical identifiers (ids, slugs, field names, file paths) verbatim. Schema keys, section markers (`<!-- compiled_truth -->`, `## Timeline`), and enum values (`category`, `status`, `kind`) stay as specified above.
+
+**Timeline summaries are caller-authored.** The CLI does not generate a sentence in English or any other language, and it never rewrites timeline entries already stored.
+
+- Pass `--summary` in the user's working language on `create-page`, `update-truth`, and `append-timeline`. Pass `--reversal-summary` the same way when archiving a page with a reversal note.
+- If `--summary` is omitted, `create-page` records the page title, and `update-truth` records the first usable line of the new compiled_truth (a leading Markdown heading marker is dropped). Both are text you already wrote. Pass `--summary` when that fallback would not explain the change.
+- Pass `--source` in the user's working language when the provenance is a phrase. The default is only the CLI command identifier (`created via brain create-page`, `brain update-truth`, `brain archive-page`).

@@ -46,9 +46,14 @@ Write each with `echo "<body>" | brain update-root <slug>` (body on stdin). Lean
 For each genuine decision you can see in the history or the code (e.g. "switched from X to Y", "adopted pattern Z", a deliberate constraint), create a `decision` page and fill in its understanding:
 
 ```
-brain create-page --id <kebab-id> --category decision --title "<one-line decision>" --source "git log / code"
+brain create-page --id <kebab-id> --category decision \
+  --title "<one-line decision>" \
+  --summary "<why this page was created, in the user's working language>" \
+  --source "<where this came from>"
 echo "<what was decided, the alternatives, the rationale, the blast radius>" | \
-  brain update-truth --id <kebab-id> --summary "captured from project history" --source "git log"
+  brain update-truth --id <kebab-id> \
+  --summary "<what was captured, in the user's working language>" \
+  --source "<where this came from>"
 ```
 
 Link related pages and the relevant root area with `[[page-id]]`.
@@ -90,4 +95,4 @@ From the answers:
 2. Report back to the user: which root pages you drafted, which decision pages you created, and anything you marked **low-confidence / needs confirmation**.
 3. Remind the user of the standing rule: **all reads and writes go through the `brain` CLI — never hand-edit a brain file.** From here, ongoing knowledge capture flows through the **brain-page** and **brain-ingest** skills.
 
-Write the body of root pages, compiled_truth, and timelines in the user's working language; keep technical identifiers (ids, slugs, field names, paths) verbatim.
+Write the body of root pages, compiled_truth, and timelines in the user's working language, including every `--summary`. Keep technical identifiers (ids, slugs, field names, paths) verbatim. The CLI does not invent an English timeline sentence: pass `--summary`, or accept the title (`create-page`) / first line of the new compiled_truth (`update-truth`) as the entry.
