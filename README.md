@@ -132,7 +132,8 @@ brain uninstall-hooks --agent codex          # remove only the Codex hook
 brain brain-dir                              # where is the brain?
 brain list-pages                             # list pages
 brain read-page my-decision                  # read a page
-brain create-page --id my-decision --category decision --title "Use X over Y"
+brain create-page --id my-decision --category decision --title "Use X over Y" \
+  --summary "why this page exists"
 echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
 brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
 printf '# System architecture\n\n## Overview\n\nRequests enter through the gateway.\n' | brain update-root architecture
@@ -142,6 +143,9 @@ brain reindex && brain lint-links
 A page carries a rewritable **compiled_truth** (the current best understanding) plus an
 append-only **timeline** (the chain of evidence). `update-truth` rewrites the truth and appends
 its timeline entry in one atomic write — so the understanding can never change without a trace.
+Pass `--summary` in the user's working language. If you omit it, `create-page` records the
+title and `update-truth` records the first line of the new text — the CLI does not invent an
+English sentence, and it does not rewrite timeline entries already stored.
 
 ## Codex lifecycle hooks
 

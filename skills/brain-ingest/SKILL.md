@@ -36,7 +36,7 @@ Split the input into individual **atomic knowledge points**. A knowledge point =
 
 - All writes go through the `brain` CLI — see **brain-page** for exact commands. Never hand-edit frontmatter or timelines.
 - Root pages are rewritten wholesale via `update-root`; they have no timeline. Start the body with `# Title`. An older root page whose stored body has no H1 may omit that heading on its next write; the stored frontmatter title is inserted.
-- Write the body in the user's working language; keep technical identifiers (ids, slugs, field names, paths) verbatim.
+- Write the body in the user's working language; keep technical identifiers (ids, slugs, field names, paths) verbatim. Pass `--summary` in that same language on `create-page` and `update-truth` (the creation entry included). The CLI will not insert an English timeline sentence for you.
 - Connect related pages explicitly with `[[page-id]]`.
 
 ### 5. Verify

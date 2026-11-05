@@ -83,19 +83,22 @@ Assume the `brain` shell function defined above (`brain() { node <bundle>/bin/br
 
 ```
 brain create-page --id <kebab-id> --category <category> --title "<one-line title>" \
+  [--summary "<creation note, in the user's working language>"] \
   [--tags a,b] [--status active] [--source "<where this came from>"]
 ```
 
-Generates `brain/pages/<id>.md` from the template (frontmatter + `<!-- compiled_truth -->` + a visible `## Timeline` seeded with one `kind: decision` creation entry), then reindexes. Fill in the real compiled_truth afterwards via `update-truth`.
+Generates `brain/pages/<id>.md` from the template (frontmatter + `<!-- compiled_truth -->` + a visible `## Timeline` seeded with one `kind: decision` creation entry), then reindexes. The creation `summary` is `--summary` when you pass it. If you omit it, the CLI records the page title unchanged — it does not prefix an English sentence. Write `--summary` and `--source` in the user's working language. Fill in the real compiled_truth afterwards via `update-truth`.
 
 ### Rewrite compiled_truth (atomic with its timeline entry)
 
 ```
 echo "<new compiled_truth markdown>" | brain update-truth --id <id> \
-  --summary "<what changed and why>" [--source "<source>"]
+  --summary "<what changed and why, in the user's working language>" [--source "<source>"]
 ```
 
 Reads the new compiled_truth from **stdin**, rewrites the compiled_truth section (canonical marker: `<!-- compiled_truth -->`), and **in the same atomic write** appends a `kind: decision` entry to the visible `## Timeline` section and bumps `updated`. Changing the understanding and recording why are inseparable — you cannot do one without the other.
+
+Pass `--summary` in the user's working language. If you omit it, the timeline summary is the first usable line of the new compiled_truth (a leading Markdown heading marker is removed), not a generated English sentence. Pass `--summary` whenever that line would not explain the change. Existing timeline entries are never rewritten.
 
 ### Append a timeline entry (append-only)
 
@@ -104,7 +107,7 @@ brain append-timeline --id <id> --kind <decision|evidence|reversal|note> \
   --summary "<one line>" [--source "<source>"] [--affects a,b]
 ```
 
-Appends to the **end** of the timeline only; existing entries are never touched.
+Appends to the **end** of the timeline only; existing entries are never touched. `--summary` is required and must be written in the user's working language. Schema keys, section markers, and enum values (`kind`, categories, statuses) stay English.
 
 ### Archive a page
 

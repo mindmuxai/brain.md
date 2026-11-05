@@ -55,6 +55,8 @@ function assertCompanionBlock(text) {
   assert.match(text, /Pure implementation/i);
   assert.match(text, /overturning/i);
   assert.match(text, /never hand-edit/i);
+  assert.match(text, /working language/);
+  assert.match(text, /--summary/);
   assert.match(text, /If a brain MCP server is connected and authenticated, prefer it/);
   assert.match(text, /otherwise use the `brain` CLI/);
   assert.doesNotMatch(text, /All reads and writes go through the `brain` CLI — never hand-edit brain files/);
@@ -404,4 +406,104 @@ test("create-page and update-truth still work after init", (t) => {
   assert.match(page, /diff-ability/);
   assert.match(page, /<!-- compiled_truth -->/);
   assert.match(page, /## Timeline/);
+  assert.match(page, /summary: Use Markdown not SQLite/);
+  assert.match(page, /summary: capture decision/);
+  assert.doesNotMatch(page, /Created this page/);
+  assert.doesNotMatch(page, /Rewrote compiled_truth/);
+});
+
+test("timeline summaries stay in the caller's language", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  r = runBrain(project, [
+    "create-page",
+    "--id",
+    "report-export",
+    "--category",
+    "decision",
+    "--title",
+    "报告导出约定",
+    "--source",
+    "用户明确要求中文记录",
+  ]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  const created = readFileSync(join(project, "brain", "pages", "report-export.md"), "utf8");
+  assert.match(created, /summary: "报告导出约定"/);
+  assert.doesNotMatch(created, /Created this page/);
+
+  r = runBrain(
+    project,
+    [
+      "update-truth",
+      "--id",
+      "report-export",
+      "--summary",
+      "记录用户确认的报告导出约定",
+      "--source",
+      "用户本轮确认",
+    ],
+    { input: "报告默认导出为 Markdown，并保留原始来源链接。\n" },
+  );
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  r = runBrain(
+    project,
+    ["update-truth", "--id", "report-export", "--source", "用户省略摘要"],
+    { input: "# 导出时保留来源链接\n\n不另写英文说明。\n" },
+  );
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  const page = readFileSync(join(project, "brain", "pages", "report-export.md"), "utf8");
+  assert.match(page, /summary: "报告导出约定"/);
+  assert.match(page, /summary: "记录用户确认的报告导出约定"/);
+  assert.match(page, /summary: "导出时保留来源链接"/);
+  assert.doesNotMatch(page, /Created this page/);
+  assert.doesNotMatch(page, /Rewrote compiled_truth/);
+  // The creation entry is left as first written. Later Chinese summaries do not rewrite it.
+  assert.equal(page.match(/summary:/g).length, 3);
+
+  r = runBrain(project, [
+    "create-page",
+    "--id",
+    "named-create",
+    "--category",
+    "decision",
+    "--title",
+    "报告导出约定",
+    "--summary",
+    "按用户语言记录页面创建",
+  ]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const named = readFileSync(join(project, "brain", "pages", "named-create.md"), "utf8");
+  assert.match(named, /summary: "按用户语言记录页面创建"/);
+  assert.doesNotMatch(named, /summary: "报告导出约定"/);
+  assert.doesNotMatch(named, /Created this page/);
+
+  r = runBrain(
+    project,
+    ["update-truth", "--id", "named-create"],
+    { input: "```\n<!-- note -->\n```\n" },
+  );
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /--summary/);
+  const unchanged = readFileSync(join(project, "brain", "pages", "named-create.md"), "utf8");
+  assert.equal(unchanged, named);
+
+  r = runBrain(project, [
+    "create-page",
+    "--id",
+    "blank-summary",
+    "--category",
+    "decision",
+    "--title",
+    "ignored",
+    "--summary",
+    "   ",
+  ]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /--summary requires a non-empty value/);
+  assert.ok(!existsSync(join(project, "brain", "pages", "blank-summary.md")));
 });
