@@ -3,14 +3,11 @@ name: Publish
 # Controlled release: tag vX.Y.Z (must match package.json version) or
 # workflow_dispatch on main with confirm=publish.
 #
-# Requires repo secret NPM_TOKEN. Create on https://www.npmjs.com/settings/~/tokens
-# as a Granular Access Token (or Automation):
-#   - Permissions: Packages → Read and write
-#   - Organizations / scopes: mindmux (or packages under @mindmux/*)
-#   - Enable "Bypass two-factor authentication" (required for CI publish when 2FA is on)
-#   - Do not use a read-only or classic token
-#
-# Then: gh secret set NPM_TOKEN --repo mindmuxai/brain.md
+# Publishing uses npm Trusted Publisher (OIDC), no token.
+# The package's trusted publisher on npmjs.com must match this workflow:
+#   GitHub Actions, organization mindmuxai, repository brain.md,
+#   workflow filename publish.yml, no environment.
+# Requires npm >= 11.5.1 (installed below) and id-token: write.
 on:
   push:
     tags:
@@ -24,7 +21,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # npm trusted publisher (OIDC)
 
 jobs:
   publish:
@@ -44,7 +41,19 @@ jobs:
           scope: "@mindmux"
 
       - name: Ensure modern npm
-        run: npm install -g npm@latest && npm --version
+        run: |
+          set -euo pipefail
+          npm install -g npm@latest
+          ver="$(npm --version)"
+          echo "npm $ver"
+          node -e '
+            const [maj, min, pat] = process.argv[1].split(".").map(Number);
+            const ok = maj > 11 || (maj === 11 && (min > 5 || (min === 5 && pat >= 1)));
+            if (!ok) {
+              console.error(`npm ${process.argv[1]} is below 11.5.1, required for trusted publishing`);
+              process.exit(1);
+            }
+          ' "$ver"
 
       - name: Run tests
         run: npm test
@@ -61,28 +70,30 @@ jobs:
           fi
           echo "Publishing @mindmux/brain-md@$PKG (tag v$TAG)"
 
-      - name: Check npm auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # setup-node@v4 with registry-url writes
+      # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} and, when no token
+      # is set, exports a placeholder NODE_AUTH_TOKEN. npm then treats token
+      # auth as configured and skips the OIDC exchange. npm's trusted-publisher
+      # example keeps registry-url; only the token line has to go. The scoped
+      # registry line from scope: "@mindmux" stays.
+      - name: Remove setup-node auth token line
         run: |
           set -euo pipefail
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "NPM_TOKEN secret is empty"
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          if [ ! -f "$npmrc" ]; then
+            echo "expected setup-node npmrc at $npmrc"
             exit 1
           fi
-          echo "NPM_TOKEN length: ${#NODE_AUTH_TOKEN}"
-          case "$NODE_AUTH_TOKEN" in
-            npm_*) echo "NPM_TOKEN prefix: npm_" ;;
-            *) echo "NPM_TOKEN prefix: unexpected (expected npm_*)" ;;
-          esac
-          if [[ "$NODE_AUTH_TOKEN" == *$'\n'* ]] || [[ "$NODE_AUTH_TOKEN" == *$'\r'* ]]; then
-            echo "NPM_TOKEN contains a newline/CR — re-set the secret without trailing newline"
+          sed -i '/_authToken/d' "$npmrc"
+          if grep -q '_authToken' "$npmrc"; then
+            echo "failed to remove _authToken from $npmrc"
             exit 1
           fi
-          npm whoami --registry=https://registry.npmjs.org
-          echo "npm whoami succeeded"
+          echo "npm userconfig after removing _authToken:"
+          cat "$npmrc"
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          npm publish --access public --provenance
